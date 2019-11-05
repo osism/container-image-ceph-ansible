@@ -1,0 +1,24 @@
+diff --git a/infrastructure-playbooks/purge-cluster.yml b/infrastructure-playbooks/purge-cluster.yml
+index 0f63cc34..36339372 100644
+--- a/infrastructure-playbooks/purge-cluster.yml
++++ b/infrastructure-playbooks/purge-cluster.yml
+@@ -628,6 +628,4 @@
+     when: fetch_directory is not defined
+ 
+   - name: purge fetch directory for localhost
+-    file:
+-      path: "{{ fetch_directory }}"
+-      state: absent
++    shell: "/bin/rm -rf {{ fetch_directory }}/*"
+diff --git a/infrastructure-playbooks/purge-docker-cluster.yml b/infrastructure-playbooks/purge-docker-cluster.yml
+index 64d7f5fe..064698e2 100644
+--- a/infrastructure-playbooks/purge-docker-cluster.yml
++++ b/infrastructure-playbooks/purge-docker-cluster.yml
+@@ -823,6 +823,4 @@
+     when: fetch_directory is not defined
+ 
+   - name: purge fetch directory for localhost
+-    file:
+-      path: "{{ fetch_directory }}/"
+-      state: absent
++    shell: "/bin/rm -rf {{ fetch_directory }}/*"

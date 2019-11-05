@@ -1,0 +1,21 @@
+---
+- name: Apply role ceph-mgr
+  gather_facts: false
+  hosts: ceph-mgr
+  become: true
+
+  vars_files:
+    - /opt/configuration/environments/configuration.yml
+    - /opt/configuration/environments/images.yml
+    - /opt/configuration/environments/secrets.yml
+    - /opt/configuration/environments/ceph/configuration.yml
+    - /opt/configuration/environments/ceph/images.yml
+    - /opt/configuration/environments/ceph/secrets.yml
+
+  roles:
+    - ceph-defaults
+    - ceph-facts
+    - ceph-handler
+    - ceph-docker-common
+    - ceph-config
+    - ceph-mgr

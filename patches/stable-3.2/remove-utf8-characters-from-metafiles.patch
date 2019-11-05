@@ -1,0 +1,144 @@
+diff --git a/roles/ceph-client/meta/main.yml b/roles/ceph-client/meta/main.yml
+index d16a8090..295abaa5 100644
+--- a/roles/ceph-client/meta/main.yml
++++ b/roles/ceph-client/meta/main.yml
+@@ -1,6 +1,6 @@
+ ---
+ galaxy_info:
+-  author: Sébastien Han
++  author: Sebastien Han
+   description: Installs A Ceph Client
+   license: Apache
+   min_ansible_version: 2.3
+diff --git a/roles/ceph-common/meta/main.yml b/roles/ceph-common/meta/main.yml
+index 50c0ab69..545bd785 100644
+--- a/roles/ceph-common/meta/main.yml
++++ b/roles/ceph-common/meta/main.yml
+@@ -1,6 +1,6 @@
+ ---
+ galaxy_info:
+-  author: Sébastien Han
++  author: Sebastien Han
+   description: Installs Ceph
+   license: Apache
+   min_ansible_version: 2.3
+diff --git a/roles/ceph-defaults/meta/main.yml b/roles/ceph-defaults/meta/main.yml
+index 8d90eedc..3be7f516 100644
+--- a/roles/ceph-defaults/meta/main.yml
++++ b/roles/ceph-defaults/meta/main.yml
+@@ -1,6 +1,6 @@
+ ---
+ galaxy_info:
+-  author: Sébastien Han
++  author: Sebastien Han
+   description: Handles ceph-ansible default vars for all roles
+   license: Apache
+   min_ansible_version: 2.3
+diff --git a/roles/ceph-docker-common/meta/main.yml b/roles/ceph-docker-common/meta/main.yml
+index 50c0ab69..545bd785 100644
+--- a/roles/ceph-docker-common/meta/main.yml
++++ b/roles/ceph-docker-common/meta/main.yml
+@@ -1,6 +1,6 @@
+ ---
+ galaxy_info:
+-  author: Sébastien Han
++  author: Sebastien Han
+   description: Installs Ceph
+   license: Apache
+   min_ansible_version: 2.3
+diff --git a/roles/ceph-handler/meta/main.yml b/roles/ceph-handler/meta/main.yml
+index acb144c8..9e0e2a40 100644
+--- a/roles/ceph-handler/meta/main.yml
++++ b/roles/ceph-handler/meta/main.yml
+@@ -1,6 +1,6 @@
+ ---
+ galaxy_info:
+-  author: Sébastien Han
++  author: Sebastien Han
+   description: Contains handlers for Ceph services
+   license: Apache
+   min_ansible_version: 2.3
+diff --git a/roles/ceph-mds/meta/main.yml b/roles/ceph-mds/meta/main.yml
+index d5d8768d..b899729a 100644
+--- a/roles/ceph-mds/meta/main.yml
++++ b/roles/ceph-mds/meta/main.yml
+@@ -1,6 +1,6 @@
+ ---
+ galaxy_info:
+-  author: Sébastien Han
++  author: Sebastien Han
+   description: Installs Ceph Metadata
+   license: Apache
+   min_ansible_version: 2.3
+diff --git a/roles/ceph-mgr/meta/main.yml b/roles/ceph-mgr/meta/main.yml
+index 566a7ec9..e5c58902 100644
+--- a/roles/ceph-mgr/meta/main.yml
++++ b/roles/ceph-mgr/meta/main.yml
+@@ -1,6 +1,6 @@
+ ---
+ galaxy_info:
+-  author: Sébastien Han
++  author: Sebastien Han
+   description: Installs Ceph Manager
+   license: Apache
+   min_ansible_version: 2.3
+diff --git a/roles/ceph-mon/meta/main.yml b/roles/ceph-mon/meta/main.yml
+index 464a7f21..32b40d83 100644
+--- a/roles/ceph-mon/meta/main.yml
++++ b/roles/ceph-mon/meta/main.yml
+@@ -1,6 +1,6 @@
+ ---
+ galaxy_info:
+-  author: Sébastien Han
++  author: Sebastien Han
+   description: Installs Ceph Monitor
+   license: Apache
+   min_ansible_version: 2.3
+diff --git a/roles/ceph-osd/meta/main.yml b/roles/ceph-osd/meta/main.yml
+index 0871c04b..667d4099 100644
+--- a/roles/ceph-osd/meta/main.yml
++++ b/roles/ceph-osd/meta/main.yml
+@@ -1,6 +1,6 @@
+ ---
+ galaxy_info:
+-  author: Sébastien Han
++  author: Sebastien Han
+   description: Installs Ceph Object Storage Daemon
+   license: Apache
+   min_ansible_version: 2.3
+diff --git a/roles/ceph-rbd-mirror/meta/main.yml b/roles/ceph-rbd-mirror/meta/main.yml
+index 1686dfac..78c0e7b8 100644
+--- a/roles/ceph-rbd-mirror/meta/main.yml
++++ b/roles/ceph-rbd-mirror/meta/main.yml
+@@ -1,6 +1,6 @@
+ ---
+ galaxy_info:
+-  author: Sébastien Han
++  author: Sebastien Han
+   description: Installs Ceph Mirror Agent
+   license: Apache
+   min_ansible_version: 2.3
+diff --git a/roles/ceph-restapi/meta/main.yml b/roles/ceph-restapi/meta/main.yml
+index e303764d..cf8f67e4 100644
+--- a/roles/ceph-restapi/meta/main.yml
++++ b/roles/ceph-restapi/meta/main.yml
+@@ -1,6 +1,6 @@
+ ---
+ galaxy_info:
+-  author: Sébastien Han
++  author: Sebastien Han
+   description: Installs Ceph RESTAPI
+   license: Apache
+   min_ansible_version: 2.3
+diff --git a/roles/ceph-rgw/meta/main.yml b/roles/ceph-rgw/meta/main.yml
+index 49c57fe0..60962203 100644
+--- a/roles/ceph-rgw/meta/main.yml
++++ b/roles/ceph-rgw/meta/main.yml
+@@ -1,6 +1,6 @@
+ ---
+ galaxy_info:
+-  author: Sébastien Han
++  author: Sebastien Han
+   description: Installs Ceph Rados Gateway
+   license: Apache
+   min_ansible_version: 2.3

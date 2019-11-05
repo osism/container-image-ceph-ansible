@@ -1,0 +1,26 @@
+---
+- git: https://github.com/osism/travis.git
+  version: master
+  files:
+    - src: docker/gilt.yml
+      dst: ./gilt.yml
+    - src: docker/.gitignore
+      dst: ./.gitignore
+    - src: docker/README.md
+      dst: ./README.md
+    - src: docker/.travis.yml
+      dst: ./.travis.yml
+    - src: docker/scripts/push.sh
+      dst: ./scripts/push.sh
+    - src: docker/scripts/build.sh
+      dst: ./scripts/build.sh
+    - src: docker/scripts/lint.sh
+      dst: ./scripts/lint.sh
+    - src: docker/scripts/travis.sh
+      dst: ./scripts/travis.sh
+    - src: docker/render-template.py
+      dst: ./
+      post_commands:
+        - python3 render-template.py .travis.yml
+        - python3 render-template.py README.md
+        - rm -f render-template.py

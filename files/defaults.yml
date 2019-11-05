@@ -1,0 +1,26 @@
+---
+##########################
+# docker
+
+docker_registry: index.docker.io
+
+##########################
+# generic
+
+containerized_deployment: true
+ntp_service_enabled: false
+fetch_directory: /share
+
+##########################
+# group names
+
+mon_group_name: ceph-mon
+osd_group_name: ceph-osd
+rgw_group_name: ceph-rgw
+mds_group_name: ceph-mds
+nfs_group_name: ceph-nfs
+restapi_group_name: ceph-restapi
+rbdmirror_group_name: ceph-rbdmirror
+client_group_name: ceph-client
+iscsi_gw_group_name: ceph-iscsigw
+mgr_group_name: ceph-mgr
