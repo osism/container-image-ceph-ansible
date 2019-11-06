@@ -105,7 +105,7 @@ RUN ansible-galaxy install -v -f -r /ansible/galaxy/requirements.yml -p /ansible
 # install required ansible plugins
 
 ADD https://github.com/dw/mitogen/archive/v$MITOGEN_VERSION.tar.gz /mitogen.tar.gz
-RUN tar xvzf /mitogen.tar.gz --strip-components=1 -C /ansible/plugins/mitogen \
+RUN tar xzf /mitogen.tar.gz --strip-components=1 -C /ansible/plugins/mitogen \
     && rm /mitogen.tar.gz
 
 # prepare project repository
