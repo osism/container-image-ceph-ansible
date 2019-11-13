@@ -17,6 +17,10 @@ PUSH_COMMIT=${PUSH_COMMIT:-false}
 REPOSITORY=${REPOSITORY:-osism/ceph-ansible}
 VERSION=${VERSION:-latest}
 
+if [[ -n $TRAVIS_TAG ]]; then
+    VERSION=${TRAVIS_TAG:1}
+fi
+
 COMMIT=$(git rev-parse --short HEAD)
 
 if [[ -n $DOCKER_REGISTRY ]]; then
