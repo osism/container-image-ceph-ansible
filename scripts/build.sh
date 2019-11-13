@@ -17,6 +17,10 @@ DOCKER_REGISTRY=${DOCKER_REGISTRY:-index.docker.io}
 REPOSITORY=${REPOSITORY:-osism/ceph-ansible}
 VERSION=${VERSION:-latest}
 
+if [[ -n $TRAVIS_TAG ]]; then
+    VERSION=${TRAVIS_TAG:1}
+fi
+
 HASH_REPOSITORY=$(git rev-parse --short HEAD)
 
 if [[ -n $DOCKER_REGISTRY ]]; then
