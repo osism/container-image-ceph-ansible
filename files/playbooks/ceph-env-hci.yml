@@ -1,0 +1,14 @@
+---
+- name: Apply Ceph roles for a typical HCI environment
+  gather_facts: false
+  hosts: ceph
+  become: true
+  roles:
+    - ceph-defaults
+    - ceph-facts
+    - ceph-handler
+    - ceph-docker-common
+    - ceph-config
+    - ceph-mon
+    - ceph-mgr
+    - ceph-osd
