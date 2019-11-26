@@ -1,14 +1,36 @@
 ---
-- name: Apply Ceph roles for a typical HCI environment
+- name: Prepare docker and configuration
   gather_facts: false
   hosts: ceph
   become: true
+
   roles:
     - ceph-defaults
     - ceph-facts
     - ceph-handler
     - ceph-docker-common
     - ceph-config
+
+- name: Deploy monitor services
+  gather_facts: false
+  hosts: ceph
+  become: true
+  serial: 1
+
+  roles:
+    - ceph-defaults
+    - ceph-facts
+    - ceph-handler
     - ceph-mon
+
+- name: Deploy manager and osd services
+  gather_facts: false
+  hosts: ceph
+  become: true
+
+  roles:
+    - ceph-defaults
+    - ceph-facts
+    - ceph-handler
     - ceph-mgr
     - ceph-osd
