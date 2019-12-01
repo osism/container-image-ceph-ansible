@@ -27,7 +27,11 @@ if [[ -n $DOCKER_REGISTRY ]]; then
     REPOSITORY="$DOCKER_REGISTRY/$REPOSITORY"
 fi
 
-TAG=$REPOSITORY:$CEPH_VERSION-$VERSION
+if [[ $CEPH_VERSION == "master" ]]; then
+    TAG=$REPOSITORY:latest
+else
+    TAG=$REPOSITORY:$CEPH_VERSION-$VERSION
+fi
 
 docker build \
     --build-arg "CEPH_VERSION=$CEPH_VERSION" \
