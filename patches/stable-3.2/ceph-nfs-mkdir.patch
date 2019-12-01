@@ -1,5 +1,3 @@
-diff --git a/roles/ceph-nfs/templates/ceph-nfs.service.j2 b/roles/ceph-nfs/templates/ceph-nfs.service.j2
-index 77acbee9..c5ea638f 100644
 --- a/roles/ceph-nfs/templates/ceph-nfs.service.j2
 +++ b/roles/ceph-nfs/templates/ceph-nfs.service.j2
 @@ -6,7 +6,7 @@ After=docker.service
