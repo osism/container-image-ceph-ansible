@@ -1,6 +1,6 @@
 --- a/infrastructure-playbooks/purge-cluster.yml
 +++ b/infrastructure-playbooks/purge-cluster.yml
-@@ -823,6 +823,4 @@
+@@ -822,6 +822,4 @@
      when: fetch_directory is not defined
  
    - name: purge fetch directory for localhost
@@ -10,7 +10,7 @@
 +    shell: "/bin/rm -rf {{ fetch_directory }}/*"
 --- a/infrastructure-playbooks/purge-docker-cluster.yml
 +++ b/infrastructure-playbooks/purge-docker-cluster.yml
-@@ -617,128 +617,6 @@
+@@ -461,142 +461,6 @@
          - /etc/prometheus
        failed_when: false
  
@@ -53,7 +53,8 @@
 -      msg: "It looks like container are still present."
 -    when: containers_list.stdout_lines|length > 0
 -
--- name: remove installed packages
+-
+-- name: final cleanup
 -
 -  hosts:
 -    - "{{ mon_group_name|default('mons') }}"
@@ -69,77 +70,90 @@
 -  tags: with_pkg
 -
 -  tasks:
--  - name: check if it is Atomic host
--    stat: path=/run/ostree-booted
--    register: stat_ostree
+-    - import_role:
+-        name: ceph-defaults
 -
--  - name: set fact for using Atomic host
--    set_fact:
--      is_atomic: "{{ stat_ostree.stat.exists }}"
+-    - name: check if it is Atomic host
+-      stat: path=/run/ostree-booted
+-      register: stat_ostree
 -
--  - name: stop docker service
--    service:
--      name: docker
--      state: stopped
--      enabled: no
--    when: not is_atomic
--    ignore_errors: true
+-    - name: set fact for using Atomic host
+-      set_fact:
+-        is_atomic: "{{ stat_ostree.stat.exists }}"
 -
--  - name: remove docker on debian/ubuntu
--    apt:
--      name: ['docker-ce', 'docker-engine', 'docker.io', 'python-docker', 'python3-docker']
--      state: absent
--      update_cache: yes
--      autoremove: yes
--    when: ansible_os_family == 'Debian'
+-    - import_role:
+-        name: ceph-facts
+-        tasks_from: container_binary
 -
--  - name: red hat based systems tasks
--    block:
--      - name: yum related tasks on red hat
--        block:
--          - name: remove packages on redhat
--            yum:
--              name: ['epel-release', 'docker', 'python-docker-py']
--              state: absent
+-    - name: remove ceph container image
+-      command: "{{ container_binary }} rmi {{ ceph_docker_registry }}/{{ ceph_docker_image }}:{{ ceph_docker_image_tag }}"
+-      tags:
+-        - remove_img
 -
--          - name: remove package dependencies on redhat
--            command: yum -y autoremove
--            args:
--              warn: no
+-    - name: stop docker service
+-      service:
+-        name: docker
+-        state: stopped
+-        enabled: no
+-      when:
+-        - not is_atomic
+-        - container_binary == 'docker'
+-      ignore_errors: true
 -
--          - name: remove package dependencies on redhat again
--            command: yum -y autoremove
--            args:
--              warn: no
--        when:
--          ansible_pkg_mgr == "yum"
+-    - name: remove docker on debian/ubuntu
+-      apt:
+-        name: ['docker-ce', 'docker-engine', 'docker.io', 'python-docker', 'python3-docker']
+-        state: absent
+-        update_cache: yes
+-        autoremove: yes
+-      when: ansible_os_family == 'Debian'
 -
--      - name: dnf related tasks on red hat
--        block:
--          - name: remove docker on redhat
--            dnf:
--              name: ['docker', 'python3-docker']
--              state: absent
+-    - name: red hat based systems tasks
+-      block:
+-        - name: yum related tasks on red hat
+-          block:
+-            - name: remove packages on redhat
+-              yum:
+-                name: ['epel-release', 'docker', 'python-docker-py']
+-                state: absent
 -
--          - name: remove package dependencies on redhat
--            command: dnf -y autoremove
--            args:
--              warn: no
+-            - name: remove package dependencies on redhat
+-              command: yum -y autoremove
+-              args:
+-                warn: no
 -
--          - name: remove package dependencies on redhat again
--            command: dnf -y autoremove
--            args:
--              warn: no
--        when:
--          ansible_pkg_mgr == "dnf"
--    when:
--      ansible_os_family == 'RedHat' and
--      not is_atomic
+-            - name: remove package dependencies on redhat again
+-              command: yum -y autoremove
+-              args:
+-                warn: no
+-          when:
+-            ansible_pkg_mgr == "yum"
 -
+-        - name: dnf related tasks on red hat
+-          block:
+-            - name: remove docker on redhat
+-              dnf:
+-                name: ['docker', 'python3-docker']
+-                state: absent
+-
+-            - name: remove package dependencies on redhat
+-              command: dnf -y autoremove
+-              args:
+-                warn: no
+-
+-            - name: remove package dependencies on redhat again
+-              command: dnf -y autoremove
+-              args:
+-                warn: no
+-          when:
+-            ansible_pkg_mgr == "dnf"
+-      when:
+-        ansible_os_family == 'RedHat' and
+-        not is_atomic
+ 
  - name: purge ceph directories
  
-   hosts:
-@@ -766,12 +644,6 @@
+@@ -625,12 +489,6 @@
    - name: remove ceph data
      shell: rm -rf /var/lib/ceph/*
  
@@ -152,7 +166,7 @@
  - name: purge fetch directory
  
    hosts: localhost
-@@ -786,6 +658,4 @@
+@@ -645,6 +503,4 @@
      when: fetch_directory is not defined
  
    - name: purge fetch directory for localhost
