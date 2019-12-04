@@ -8,8 +8,8 @@
 -      path: "{{ fetch_directory }}"
 -      state: absent
 +    shell: "/bin/rm -rf {{ fetch_directory }}/*"
---- a/infrastructure-playbooks/purge-docker-cluster.yml
-+++ b/infrastructure-playbooks/purge-docker-cluster.yml
+--- a/infrastructure-playbooks/purge-container-cluster.yml
++++ b/infrastructure-playbooks/purge-container-cluster.yml
 @@ -461,142 +461,6 @@
          - /etc/prometheus
        failed_when: false
