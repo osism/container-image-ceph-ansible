@@ -11,6 +11,11 @@ containerized_deployment: true
 ntp_service_enabled: false
 fetch_directory: /share
 
+# NOTE(berendt): We use an adapted Ceph image in which always the UID 64045 is used
+ceph_uid: 64045
+bootstrap_dirs_owner: "64045"
+bootstrap_dirs_group: "64045"
+
 ##########################
 # group names
 
