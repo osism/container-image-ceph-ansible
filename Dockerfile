@@ -152,7 +152,6 @@ RUN apt-get clean \
     && rm -rf \
       /patches \
       /release \
-      /requirements.txt \
       /root/.cache \
       /src \
       /tmp/* \
