@@ -1,5 +1,4 @@
 FROM ubuntu:18.04
-LABEL maintainer="Betacloud Solutions GmbH (https://www.betacloud-solutions.de)"
 
 ARG VERSION
 ARG CEPH_VERSION=luminous
@@ -165,3 +164,9 @@ USER dragon
 WORKDIR /ansible
 
 ENTRYPOINT ["/usr/bin/dumb-init", "--"]
+
+LABEL "org.opencontainers.image.documentation"="https://docs.osism.io" \
+      "org.opencontainers.image.licenses"="ASL 2.0" \
+      "org.opencontainers.image.source"="https://github.com/osism/docker-ceph-ansible" \
+      "org.opencontainers.image.url"="https://www.osism.de" \
+      "org.opencontainers.image.vendor"="Betacloud Solutions GmbH"
