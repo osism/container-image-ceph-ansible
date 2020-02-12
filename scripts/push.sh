@@ -5,7 +5,6 @@ set -x
 #
 # CEPH_VERSION
 # DOCKER_REGISTRY
-# PUSH_COMMIT
 # REPOSITORY
 # VERSION
 
@@ -13,7 +12,6 @@ set -x
 
 CEPH_VERSION=${CEPH_VERSION:-luminous}
 DOCKER_REGISTRY=${DOCKER_REGISTRY:-index.docker.io}
-PUSH_COMMIT=${PUSH_COMMIT:-false}
 REPOSITORY=${REPOSITORY:-osism/ceph-ansible}
 VERSION=${VERSION:-latest}
 
@@ -27,15 +25,19 @@ if [[ -n $DOCKER_REGISTRY ]]; then
     REPOSITORY="$DOCKER_REGISTRY/$REPOSITORY"
 fi
 
-if [[ $PUSH_COMMIT == "true" ]]; then
-    docker push "$REPOSITORY:$VERSION-$COMMIT"
-fi
-
 if [[ $CEPH_VERSION == "master" ]]; then
     tag=$REPOSITORY:latest
-else
-    tag=$REPOSITORY:$CEPH_VERSION-$VERSION
-fi
 
-docker tag "$tag-$COMMIT" "$tag"
-docker push "$tag"
+    docker tag "$tag-$COMMIT" "$tag"
+    docker push "$tag"
+else
+    tag=$REPOSITORY:$CEPH_VERSION
+
+    docker tag "$tag-$COMMIT" "$tag-$VERSION"
+    docker push "$tag"
+
+    if [[ -z $TRAVIS_TAG ]]; then
+        docker tag "$tag-$COMMIT" "$tag"
+        docker push "$tag"
+    fi
+fi
