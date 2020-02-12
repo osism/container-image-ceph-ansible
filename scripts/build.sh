@@ -30,7 +30,7 @@ fi
 if [[ $CEPH_VERSION == "master" ]]; then
     TAG=$REPOSITORY:latest
 else
-    TAG=$REPOSITORY:$CEPH_VERSION-$VERSION
+    TAG=$REPOSITORY:$CEPH_VERSION
 fi
 
 docker build \
