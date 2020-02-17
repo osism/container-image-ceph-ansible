@@ -33,6 +33,6 @@
     - ceph-defaults
     - ceph-facts
     - ceph-handler
-    - ceph-docker-common
+    - ceph-container-common
     - ceph-config
     - ceph-osd

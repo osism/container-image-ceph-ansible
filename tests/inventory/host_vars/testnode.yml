@@ -1,0 +1,32 @@
+##########################################################
+# ansible
+
+ansible_host: localhost
+
+##########################################################
+# ceph
+
+monitor_interface: dummy_frontend
+# monitor_address:
+# radosgw_interface:
+# radosgw_address:
+
+lvm_volumes:
+  - data: data-lv1
+    data_vg: vg1
+    db: db-lv1
+    db_vg: vg1
+    wal: wal-lv1
+    wal_vg: vg1
+  - data: data-lv2
+    data_vg: vg2
+    db: db-lv2
+    db_vg: vg2
+    wal: wal-lv2
+    wal_vg: vg2
+  - data: data-lv3
+    data_vg: vg3
+    db: db-lv3
+    db_vg: vg3
+    wal: wal-lv3
+    wal_vg: vg3

@@ -122,7 +122,8 @@ RUN PROJECT_VERSION=$(grep "ceph_ansible_version:" /release/$VERSION/ceph-$CEPH_
 RUN cp /repository/plugins/actions/* /ansible/action_plugins \
     && cp /repository/library/* /ansible/library \
     && for playbook in $(find /repository/infrastructure-playbooks -name "*.yml" -maxdepth 1); do echo $playbook && cp $playbook /ansible/ceph-"$(basename $playbook)"; done \
-    && cp -r /repository/roles/* /ansible/roles
+    && cp -r /repository/roles/* /ansible/roles \
+    && if [ ! -e /ansible/roles/ceph-container-common ]; then ln -s /ansible/roles/ceph-docker-common /ansible/roles/ceph-container-common; fi
 
 # NOTE(berendt): this is a workaround for ceph-ansible < 3.0.0
 RUN mkdir -p \
