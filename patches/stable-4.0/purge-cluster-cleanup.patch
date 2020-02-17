@@ -1,5 +1,3 @@
-diff --git a/infrastructure-playbooks/purge-cluster.yml b/infrastructure-playbooks/purge-cluster.yml
-index c5333ed8..22627b9b 100644
 --- a/infrastructure-playbooks/purge-cluster.yml
 +++ b/infrastructure-playbooks/purge-cluster.yml
 @@ -823,6 +823,4 @@
@@ -10,8 +8,6 @@ index c5333ed8..22627b9b 100644
 -      path: "{{ fetch_directory }}"
 -      state: absent
 +    shell: "/bin/rm -rf {{ fetch_directory }}/*"
-diff --git a/infrastructure-playbooks/purge-container-cluster.yml b/infrastructure-playbooks/purge-container-cluster.yml
-index 8bcd7293..cbfaa2ea 100644
 --- a/infrastructure-playbooks/purge-container-cluster.yml
 +++ b/infrastructure-playbooks/purge-container-cluster.yml
 @@ -469,142 +469,6 @@
