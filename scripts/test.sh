@@ -98,6 +98,7 @@ docker exec -it test /run.sh facts -v
 
 docker exec -it test /run.sh mons -v
 docker exec -it test /run.sh mgrs -v
+docker exec -it test /run.sh mdss -v
 
 sleep 60
 
