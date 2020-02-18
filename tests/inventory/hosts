@@ -1,0 +1,49 @@
+##########################################################
+# environment: ceph
+
+[ceph]
+testnode
+
+[ceph-control:children]
+ceph
+
+[cephclient:children]
+ceph-control
+
+[ceph-mds:children]
+ceph-control
+
+[ceph-mgr:children]
+ceph-control
+
+[ceph-mon:children]
+ceph-control
+
+# [ceph-rgw:children]
+# ceph-control
+
+# [ceph-rbdmirror:children]
+# ceph-control
+
+[ceph-osd:children]
+ceph-control
+
+# NOTES: Subsequent groups necessary for compatibility to ceph-ansible. Don't change it.
+
+[mdss:children]
+ceph-mds
+
+[mgrs:children]
+ceph-mgr
+
+[mons:children]
+ceph-mon
+
+# [rgws:children]
+# ceph-rgw
+
+# [rbdmirrors]
+# ceph-rbdmirror
+
+[osds:children]
+ceph-osd
