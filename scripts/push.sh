@@ -11,7 +11,7 @@ set -x
 # Set default values
 
 CEPH_VERSION=${CEPH_VERSION:-luminous}
-DOCKER_REGISTRY=${DOCKER_REGISTRY:-index.docker.io}
+DOCKER_REGISTRY=${DOCKER_REGISTRY:-quay.io}
 REPOSITORY=${REPOSITORY:-osism/ceph-ansible}
 VERSION=${VERSION:-latest}
 
