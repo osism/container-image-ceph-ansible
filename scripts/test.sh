@@ -17,7 +17,7 @@ function deploy() {
 
 # set default values
 
-DOCKER_REGISTRY=${DOCKER_REGISTRY:-index.docker.io}
+DOCKER_REGISTRY=${DOCKER_REGISTRY:-quay.io}
 CEPH_VERSION=${CEPH_VERSION:-master}
 REPOSITORY=${REPOSITORY:-osism/ceph-ansible}
 VERSION=${VERSION:-latest}

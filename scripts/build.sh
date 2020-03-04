@@ -14,7 +14,7 @@ set -x
 BUILD_OPTS=${BUILD_OPTS:-}
 CEPH_VERSION=${CEPH_VERSION:-luminous}
 CREATED=$(date --rfc-3339=ns)
-DOCKER_REGISTRY=${DOCKER_REGISTRY:-index.docker.io}
+DOCKER_REGISTRY=${DOCKER_REGISTRY:-quay.io}
 REPOSITORY=${REPOSITORY:-osism/ceph-ansible}
 REVISION=$(git rev-parse --short HEAD)
 VERSION=${VERSION:-latest}
