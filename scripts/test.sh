@@ -99,6 +99,7 @@ docker exec -it test /run.sh facts -v
 docker exec -it test /run.sh mons -v || exit 1
 docker exec -it test /run.sh mgrs -v || exit 1
 docker exec -it test /run.sh mdss -v || exit 1
+docker exec -it test /run.sh osds -v || exit 1
 
 sleep 60
 
