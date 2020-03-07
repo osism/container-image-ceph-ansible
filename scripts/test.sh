@@ -96,9 +96,9 @@ docker exec -it test /run.sh facts -v
 
 # run deployment tests
 
-docker exec -it test /run.sh mons -v
-docker exec -it test /run.sh mgrs -v
-docker exec -it test /run.sh mdss -v
+docker exec -it test /run.sh mons -v || exit 1
+docker exec -it test /run.sh mgrs -v || exit 1
+docker exec -it test /run.sh mdss -v || exit 1
 
 sleep 60
 
