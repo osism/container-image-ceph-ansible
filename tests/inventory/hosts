@@ -19,16 +19,20 @@ ceph-control
 [ceph-mon:children]
 ceph-control
 
-# [ceph-rgw:children]
-# ceph-control
-
-# [ceph-rbdmirror:children]
-# ceph-control
-
 [ceph-osd:children]
 ceph-control
 
+# NOTE: Use the following groups only if these services are deployed.
+
+[ceph-nfs]
+
+[ceph-rbdmirror]
+
+[ceph-rgw]
+
 # NOTES: Subsequent groups necessary for compatibility to ceph-ansible. Don't change it.
+
+[ceph-client]
 
 [mdss:children]
 ceph-mds
@@ -39,11 +43,14 @@ ceph-mgr
 [mons:children]
 ceph-mon
 
-# [rgws:children]
-# ceph-rgw
+[nfss:children]
+ceph-nfs
 
-# [rbdmirrors]
-# ceph-rbdmirror
+[rgws:children]
+ceph-rgw
+
+[rbdmirrors:children]
+ceph-rbdmirror
 
 [osds:children]
 ceph-osd
