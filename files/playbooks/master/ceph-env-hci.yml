@@ -1,0 +1,35 @@
+---
+- name: Prepare docker and configuration
+  gather_facts: false
+  hosts: ceph
+  become: true
+
+  roles:
+    - ceph-defaults
+    - ceph-facts
+    - ceph-handler
+    - ceph-container-common
+    - ceph-config
+
+- name: Deploy monitor services
+  gather_facts: false
+  hosts: ceph
+  become: true
+
+  roles:
+    - ceph-defaults
+    - ceph-facts
+    - ceph-handler
+    - ceph-mon
+
+- name: Deploy manager and osd services
+  gather_facts: false
+  hosts: ceph
+  become: true
+
+  roles:
+    - ceph-defaults
+    - ceph-facts
+    - ceph-handler
+    - ceph-mgr
+    - ceph-osd

@@ -19,7 +19,7 @@ COPY files/library /ansible/library
 COPY files/plugins /ansible/plugins
 COPY files/tasks /ansible/tasks
 
-COPY files/playbooks/* /ansible/
+COPY files/playbooks/$CEPH_VERSION/* /ansible/
 COPY files/scripts/* /
 
 COPY files/ansible.cfg /etc/ansible/ansible.cfg
