@@ -15,6 +15,7 @@
   gather_facts: false
   hosts: ceph
   become: true
+  serial: 1
 
   roles:
     - ceph-defaults
@@ -22,7 +23,7 @@
     - ceph-handler
     - ceph-mon
 
-- name: Deploy manager and osd services
+- name: Deploy mgr, osd, and mds services
   gather_facts: false
   hosts: ceph
   become: true
@@ -33,3 +34,4 @@
     - ceph-handler
     - ceph-mgr
     - ceph-osd
+    - ceph-mds
