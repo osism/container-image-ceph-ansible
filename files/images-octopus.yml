@@ -1,0 +1,9 @@
+---
+docker_ceph_version: octopus
+
+##########################
+# project: ceph
+
+ceph_docker_image: osism/ceph-daemon
+ceph_docker_image_tag: "{{ docker_ceph_version }}-{{ repository_version }}"
+ceph_docker_tag: "{{ docker_ceph_version }}-{{ repository_version }}"
