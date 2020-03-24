@@ -12,6 +12,7 @@ env:
     - CEPH_VERSION=master
     - CEPH_VERSION=luminous
     - CEPH_VERSION=nautilus
+    - CEPH_VERSION=octopus
 
 before_script:
   - bash scripts/lint.sh

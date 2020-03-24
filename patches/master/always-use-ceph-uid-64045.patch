@@ -1,0 +1,15 @@
+--- a/roles/ceph-facts/tasks/facts.yml
++++ b/roles/ceph-facts/tasks/facts.yml
+@@ -220,6 +220,12 @@
+     - not containerized_deployment | bool
+     - ansible_os_family == 'Debian'
+ 
++- name: set_fact ceph_uid - container
++  set_fact:
++    ceph_uid: 64045
++  when:
++    - containerized_deployment | bool
++
+ - name: set_fact rgw_hostname
+   set_fact:
+     rgw_hostname: "{% set _value = ansible_hostname -%}

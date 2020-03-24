@@ -1,0 +1,11 @@
+---
+- name: Apply role ceph-dashboard
+  gather_facts: false
+  hosts: ceph-mon
+  become: true
+
+  roles:
+    - ceph-defaults
+    - ceph-facts
+    - ceph-container-common
+    - ceph-dashboard
