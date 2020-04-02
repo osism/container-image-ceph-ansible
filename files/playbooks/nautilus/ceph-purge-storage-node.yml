@@ -15,9 +15,7 @@
   vars_prompt:
     - name: ireallymeanit
       prompt: >
-        Are you sure you want to purge the cluster?
-        Note that if with_pkg is not set docker packages
-        and more will be uninstalled from non-atomic hosts.
+        Are you sure you want to purge the node?
         Do you want to continue?
       default: 'no'
       private: no
@@ -29,7 +27,7 @@
       msg: >
         "Exiting purge-storage-node playbook, node was NOT purged.
         This playbook can only be used with a single node."
-      when: play_hosts|length > 0
+      when: play_hosts|length > 1
 
   - name: exit playbook, if user did not mean to purge node
     fail:
@@ -59,7 +57,7 @@
       msg: >
         "Exiting purge-storage-node playbook, node was NOT purged.
         This playbook can only be used with a single node."
-      when: play_hosts|length > 0
+      when: play_hosts|length > 1
 
   - import_role:
       name: ceph-defaults
@@ -158,7 +156,7 @@
       msg: >
         "Exiting purge-storage-node playbook, node was NOT purged.
         This playbook can only be used with a single node."
-      when: play_hosts|length > 0
+      when: play_hosts|length > 1
 
   - name: purge ceph directories for "{{ ansible_hostname }}"
     file:
