@@ -19,13 +19,14 @@ bootstrap_dirs_group: "64045"
 ##########################
 # group names
 
-mon_group_name: ceph-mon
-osd_group_name: ceph-osd
-rgw_group_name: ceph-rgw
-mds_group_name: ceph-mds
-nfs_group_name: ceph-nfs
-restapi_group_name: ceph-restapi
-rbdmirror_group_name: ceph-rbdmirror
 client_group_name: ceph-client
+grafana_server_group_name: ceph-grafana-server
 iscsi_gw_group_name: ceph-iscsigw
+mds_group_name: ceph-mds
 mgr_group_name: ceph-mgr
+mon_group_name: ceph-mon
+nfs_group_name: ceph-nfs
+osd_group_name: ceph-osd
+rbdmirror_group_name: ceph-rbdmirror
+restapi_group_name: ceph-restapi
+rgw_group_name: ceph-rgw
