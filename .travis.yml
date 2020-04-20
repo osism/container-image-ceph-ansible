@@ -9,10 +9,10 @@ env:
   global:
     - REPOSITORY=osism/ceph-ansible
   matrix:
-    - CEPH_VERSION=master
-    - CEPH_VERSION=luminous
-    - CEPH_VERSION=nautilus
-    - CEPH_VERSION=octopus
+    - CEPH_VERSION=master UBUNTU_VERSION=20.04
+    - CEPH_VERSION=luminous UBUNTU_VERSION=18.04
+    - CEPH_VERSION=nautilus UBUNTU_VERSION=20.04
+    - CEPH_VERSION=octopus UBUNTU_VERSION=20.04
 
 before_script:
   - bash scripts/lint.sh
