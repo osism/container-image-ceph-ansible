@@ -12,7 +12,7 @@ set -x
 # Set default values
 
 BUILD_OPTS=${BUILD_OPTS:-}
-CEPH_VERSION=${CEPH_VERSION:-luminous}
+CEPH_VERSION=${CEPH_VERSION:-nautilus}
 CREATED=$(date --rfc-3339=ns)
 DOCKER_REGISTRY=${DOCKER_REGISTRY:-quay.io}
 REPOSITORY=${REPOSITORY:-osism/ceph-ansible}
