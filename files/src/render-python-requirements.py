@@ -5,7 +5,7 @@ import yaml
 
 # get environment parameters
 
-CEPH_VERSION = os.environ.get("CEPH_VERSION", "luminous")
+CEPH_VERSION = os.environ.get("CEPH_VERSION", "nautilus")
 VERSION = os.environ.get("VERSION", "latest")
 
 # load versions files from release repository

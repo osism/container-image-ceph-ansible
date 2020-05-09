@@ -10,7 +10,7 @@ set -x
 
 # Set default values
 
-CEPH_VERSION=${CEPH_VERSION:-luminous}
+CEPH_VERSION=${CEPH_VERSION:-nautilus}
 DOCKER_REGISTRY=${DOCKER_REGISTRY:-quay.io}
 REPOSITORY=${REPOSITORY:-osism/ceph-ansible}
 VERSION=${VERSION:-latest}
