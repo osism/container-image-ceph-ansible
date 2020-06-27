@@ -9,17 +9,13 @@ env:
   global:
     - REPOSITORY=osism/ceph-ansible
   matrix:
-    - CEPH_VERSION=master UBUNTU_VERSION=20.04
-    - CEPH_VERSION=luminous UBUNTU_VERSION=18.04
-    - CEPH_VERSION=nautilus UBUNTU_VERSION=20.04
-    - CEPH_VERSION=octopus UBUNTU_VERSION=20.04
+    - VERSION=luminous
 
 before_script:
   - bash scripts/lint.sh
 
 script:
   - bash scripts/build.sh
-  - bash scripts/test.sh
 
 deploy:
   - provider: script
@@ -27,16 +23,3 @@ deploy:
     skip_cleanup: true
     on:
       branch: master
-  - provider: script
-    script: bash scripts/push.sh
-    skip_cleanup: true
-    on:
-      tags: true
-
-notifications:
-  irc:
-    channels:
-      - "irc.freenode.org#osism"
-    template:
-      - "%{result} %{repository_slug}: %{commit_subject} %{build_url}"
-    skip_join: true
