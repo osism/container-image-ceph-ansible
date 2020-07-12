@@ -1,5 +1,5 @@
 ---
-- git: https://github.com/osism/travis-master.git
+- git: https://github.com/osism/generics.git
   version: master
   files:
     - src: github/*.yml
