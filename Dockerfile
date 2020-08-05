@@ -16,6 +16,7 @@ USER root
 
 COPY patches /patches
 
+COPY files/inventory /ansible/inventory
 COPY files/library /ansible/library
 COPY files/plugins /ansible/plugins
 COPY files/tasks /ansible/tasks
@@ -30,6 +31,11 @@ COPY files/images.yml /ansible/group_vars/all/images.yml
 COPY files/requirements.yml /ansible/galaxy/requirements.yml
 
 COPY files/src /src
+
+# add inventory files
+
+ADD https://raw.githubusercontent.com/osism/cfg-generics/master/inventory/50-ceph /ansible/inventory/50-ceph
+ADD https://raw.githubusercontent.com/osism/cfg-generics/master/inventory/51-ceph /ansible/inventory/51-ceph
 
 # show motd
 
