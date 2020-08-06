@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+source /secrets.sh
+
 ENVIRONMENT=ceph
 
 if [[ $# -lt 1 ]]; then
