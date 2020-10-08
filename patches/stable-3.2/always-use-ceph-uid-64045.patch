@@ -1,30 +1,12 @@
 --- a/roles/ceph-facts/tasks/facts.yml
 +++ b/roles/ceph-facts/tasks/facts.yml
-@@ -196,26 +196,11 @@
-     - not containerized_deployment
-     - ansible_os_family in ['RedHat', 'Suse']
- 
--- name: set_fact ceph_uid for debian based system - container
+@@ -258,3 +258,9 @@
+       set_fact:
+         chrony_daemon_name: chrony
+       when: ansible_os_family == "Debian"
++
 +- name: set_fact ceph_uid - container
-   set_fact:
-     ceph_uid: 64045
-   when:
-     - containerized_deployment
--    - ceph_docker_image_tag | string is search("ubuntu")
--
--- name: set_fact ceph_uid for red hat based system - container
--  set_fact:
--    ceph_uid: 167
--  when:
--    - containerized_deployment
--    - ceph_docker_image_tag | string is search("latest") or ceph_docker_image_tag | string is search("centos") or ceph_docker_image_tag | string is search("fedora")
--
--- name: set_fact ceph_uid for red hat
--  set_fact:
--    ceph_uid: 167
--  when:
--    - containerized_deployment
--    - ceph_docker_image is search("rhceph")
- 
- - name: set_fact rgw_hostname
-   set_fact:
++  set_fact:
++    ceph_uid: 64045
++  when:
++    - containerized_deployment | bool

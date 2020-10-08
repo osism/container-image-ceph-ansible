@@ -1,15 +1,15 @@
 --- a/roles/ceph-facts/tasks/facts.yml
 +++ b/roles/ceph-facts/tasks/facts.yml
-@@ -220,6 +220,12 @@
-     - not containerized_deployment | bool
-     - ansible_os_family == 'Debian'
- 
+@@ -365,4 +365,10 @@
+   with_items:
+     - "{{ groups[mon_group_name] if groups[mon_group_name] | default([]) | length > 0 else [] }}"
+     - "{{ groups[mds_group_name] if groups[mds_group_name] | default([]) | length > 0 else [] }}"
+-    - "{{ groups[client_group_name] if groups[client_group_name] | default([]) | length > 0 else [] }}"
+\ No newline at end of file
++    - "{{ groups[client_group_name] if groups[client_group_name] | default([]) | length > 0 else [] }}"
++
 +- name: set_fact ceph_uid - container
 +  set_fact:
 +    ceph_uid: 64045
 +  when:
 +    - containerized_deployment | bool
-+
- - name: set_fact rgw_hostname
-   set_fact:
-     rgw_hostname: "{% set _value = ansible_hostname -%}

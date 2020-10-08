@@ -1,27 +1,12 @@
 --- a/roles/ceph-facts/tasks/facts.yml
 +++ b/roles/ceph-facts/tasks/facts.yml
-@@ -206,23 +206,11 @@
-     - not containerized_deployment | bool
-     - ansible_os_family in ['RedHat', 'Suse']
- 
--- name: set_fact ceph_uid for debian based system - container
+@@ -371,3 +371,9 @@
+     - "{{ groups[mon_group_name] if groups[mon_group_name] | default([]) | length > 0 else [] }}"
+     - "{{ groups[mds_group_name] if groups[mds_group_name] | default([]) | length > 0 else [] }}"
+     - "{{ groups[client_group_name] if groups[client_group_name] | default([]) | length > 0 else [] }}"
++
 +- name: set_fact ceph_uid - container
-   set_fact:
-     ceph_uid: 64045
-   when:
-     - containerized_deployment | bool
--    - ceph_docker_image_tag | string is search("ubuntu")
--
--- name: set_fact ceph_uid for red hat based system - container
--  set_fact:
--    ceph_uid: 167
--  when:
--    - containerized_deployment | bool
--    - (ceph_docker_image_tag | string is search("latest")
--      or ceph_docker_image_tag | string is search("centos")
--      or ceph_docker_image_tag | string is search("fedora")
--      or ceph_docker_image_tag | string is search("rhceph")
--      or (ansible_distribution == 'RedHat'))
- 
- - name: set_fact rgw_hostname
-   set_fact:
++  set_fact:
++    ceph_uid: 64045
++  when:
++    - containerized_deployment | bool
