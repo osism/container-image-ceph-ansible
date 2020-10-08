@@ -30,3 +30,9 @@ osd_group_name: ceph-osd
 rbdmirror_group_name: ceph-rbdmirror
 restapi_group_name: ceph-restapi
 rgw_group_name: ceph-rgw
+
+##########################
+# grafana
+
+dashboard_admin_password:
+grafana_admin_password:
