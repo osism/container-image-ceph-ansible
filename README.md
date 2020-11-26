@@ -6,7 +6,3 @@
 
 For the deployment of Ceph the project [ceph-ansible](https://github.com/ceph/ceph-ansible)
 is used in OSISM.
-
-## Author information
-
-This Docker image was created by [Betacloud Solutions GmbH](https://www.betacloud-solutions.de).
