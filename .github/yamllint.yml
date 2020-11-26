@@ -1,0 +1,7 @@
+---
+extends: default
+
+rules:
+  indentation: disable
+  line-length: disable
+  truthy: disable
