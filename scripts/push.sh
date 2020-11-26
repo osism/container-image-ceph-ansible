@@ -17,6 +17,8 @@ VERSION=${VERSION:-latest}
 
 COMMIT=$(git rev-parse --short HEAD)
 
+. defaults/$CEPH_VERSION.sh
+
 if [[ -n $DOCKER_REGISTRY ]]; then
     REPOSITORY="$DOCKER_REGISTRY/$REPOSITORY"
 fi

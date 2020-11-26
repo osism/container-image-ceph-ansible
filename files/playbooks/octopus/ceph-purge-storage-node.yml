@@ -148,7 +148,7 @@
 
   hosts: "{{ osd_group_name | default('osds') }}"
 
-  gather_facts: false # Already gathered previously
+  gather_facts: false  # Already gathered previously
   become: true
 
   tasks:

@@ -19,6 +19,8 @@ REPOSITORY=${REPOSITORY:-osism/ceph-ansible}
 REVISION=$(git rev-parse --short HEAD)
 VERSION=${VERSION:-latest}
 
+. defaults/$CEPH_VERSION.sh
+
 if [[ -n $DOCKER_REGISTRY ]]; then
     REPOSITORY="$DOCKER_REGISTRY/$REPOSITORY"
 fi
@@ -43,6 +45,5 @@ docker build \
     --label "org.opencontainers.image.vendor=Betacloud Solutions GmbH" \
     --label "org.opencontainers.image.version=$VERSION" \
     --no-cache \
-    --squash \
     --tag "$TAG-$(git rev-parse --short HEAD)" \
     $BUID_OPTS .
