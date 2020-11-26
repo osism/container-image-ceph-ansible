@@ -1,4 +1,0 @@
----
-docker_image_name: ceph-ansible
-versions:
-  - luminous
