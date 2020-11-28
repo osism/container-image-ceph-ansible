@@ -1,9 +1,10 @@
 ---
 docker_ceph_version: luminous
+ceph_image_version: "{{ docker_ceph_version }}-{{ repository_version }}"
 
 ##########################
 # project: ceph
 
 ceph_docker_image: osism/ceph-daemon
-ceph_docker_image_tag: "{{ docker_ceph_version }}-{{ repository_version }}"
-ceph_docker_tag: "{{ docker_ceph_version }}-{{ repository_version }}"
+ceph_docker_image_tag: "{{ ceph_image_version }}"
+ceph_docker_tag: "{{ ceph_image_version }}"
