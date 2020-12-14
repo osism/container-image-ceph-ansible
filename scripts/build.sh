@@ -31,7 +31,8 @@ else
     TAG=$REPOSITORY:$CEPH_VERSION
 fi
 
-docker build \
+docker buildx build \
+    --load \
     --build-arg "CEPH_VERSION=$CEPH_VERSION" \
     --build-arg "UBUNTU_VERSION=$UBUNTU_VERSION" \
     --build-arg "VERSION=$VERSION" \
@@ -44,6 +45,5 @@ docker build \
     --label "org.opencontainers.image.url=https://www.osism.de" \
     --label "org.opencontainers.image.vendor=Betacloud Solutions GmbH" \
     --label "org.opencontainers.image.version=$VERSION" \
-    --no-cache \
     --tag "$TAG-$(git rev-parse --short HEAD)" \
     $BUID_OPTS .
