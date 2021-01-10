@@ -1,9 +1,9 @@
 ---
 name: Build docker image
 
-on:  # yamllint disable-line rule:truthy
+"on":
   schedule:
-    - cron: "0 3 * * *"
+    - cron: "0 8-22 * * *"
   push:
     paths:
       - .github/workflows/build-docker-image.yml
@@ -18,9 +18,7 @@ on:  # yamllint disable-line rule:truthy
       - patches/**
 
 jobs:
-
   build-docker-image:
-
     runs-on: ubuntu-latest
 
     strategy:
