@@ -20,7 +20,7 @@
         and more will be uninstalled from non-atomic hosts.
         Do you want to continue?
       default: 'no'
-      private: no
+      private: false
 
   tasks:
 
@@ -74,7 +74,7 @@
     service:
       name: "{{ item }}"
       state: stopped
-      enabled: no
+      enabled: false
     with_items: "{{ osd_units.stdout_lines }}"
 
   - name: remove osd mountpoint tree

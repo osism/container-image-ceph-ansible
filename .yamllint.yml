@@ -2,6 +2,6 @@
 extends: default
 
 rules:
+  comments: enable
   indentation: disable
   line-length: disable
-  truthy: disable
