@@ -46,7 +46,6 @@ RUN apt-get update \
     && apt-get install -y --no-install-recommends \
         dumb-init \
         git \
-        gnupg-agent \
         libffi-dev \
         libssl-dev \
         libyaml-dev \
