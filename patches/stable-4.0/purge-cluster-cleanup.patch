@@ -1,18 +1,18 @@
 --- a/infrastructure-playbooks/purge-cluster.yml
 +++ b/infrastructure-playbooks/purge-cluster.yml
-@@ -823,6 +823,4 @@
+@@ -876,6 +876,4 @@
      when: fetch_directory is not defined
  
    - name: purge fetch directory for localhost
 -    file:
--      path: "{{ fetch_directory }}"
+-      path: "{{ fetch_directory | default('fetch/') }}"
 -      state: absent
 +    shell: "/bin/rm -rf {{ fetch_directory }}/*"
 --- a/infrastructure-playbooks/purge-container-cluster.yml
 +++ b/infrastructure-playbooks/purge-container-cluster.yml
-@@ -469,142 +469,6 @@
-         - /etc/prometheus
-       failed_when: false
+@@ -500,144 +500,6 @@
+         path: /var/lib/ceph/crash
+         state: absent
  
 -- name: check container hosts
 -
@@ -87,6 +87,7 @@
 -
 -    - name: remove ceph container image
 -      command: "{{ container_binary }} rmi {{ ceph_docker_registry }}/{{ ceph_docker_image }}:{{ ceph_docker_image_tag }}"
+-      changed_when: false
 -      tags:
 -        - remove_img
 -
@@ -150,26 +151,28 @@
 -      when:
 -        ansible_os_family == 'RedHat' and
 -        not is_atomic
- 
+-
  - name: purge ceph directories
  
-@@ -633,11 +497,6 @@
-   - name: remove ceph data
-     shell: rm -rf /var/lib/ceph/*
+   hosts:
+@@ -668,12 +530,6 @@
+     shell: rm -rf /var/lib/ceph/*  # noqa 302
+     changed_when: false
  
 -  # (todo): remove this when we are able to manage docker
 -  # service on atomic host.
 -  - name: remove docker data
--    shell: rm -rf /var/lib/docker/*
+-    shell: rm -rf /var/lib/docker/*  # noqa 302
 -    when: not is_atomic | bool
- 
+-
  - name: purge fetch directory
  
-@@ -653,6 +512,4 @@
+   hosts: localhost
+@@ -688,6 +544,4 @@
      when: fetch_directory is not defined
  
    - name: purge fetch directory for localhost
 -    file:
--      path: "{{ fetch_directory }}/"
+-      path: "{{ fetch_directory | default('fetch/') }}/"
 -      state: absent
 +    shell: "/bin/rm -rf {{ fetch_directory }}/*"
