@@ -139,7 +139,8 @@ RUN mkdir -p \
 RUN mkdir -p /tests \
     && cp -r /repository/tests/* /tests
 
-RUN python3 -m ara.setup.env > /ansible/ara.env
+# NOTE: Do not activate ARA at Luminous. Not supported by the Ansible version (2.6.x) used there.
+RUN if [ $CEPH_VERSION != "luminous" ]; then python3 -m ara.setup.env > /ansible/ara.env; fi
 
 # set correct permssions
 
