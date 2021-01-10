@@ -2,19 +2,26 @@
 ##########################
 # docker
 
-docker_registry: index.docker.io
+docker_registry: quay.io
 
 ##########################
 # generic
 
 containerized_deployment: true
-ntp_service_enabled: false
 fetch_directory: /share
+generate_fsid: false
+ntp_service_enabled: false
 
 # NOTE(berendt): We use an adapted Ceph image in which always the UID 64045 is used
 ceph_uid: 64045
 bootstrap_dirs_owner: "64045"
 bootstrap_dirs_group: "64045"
+
+##########################
+# osd
+
+osd_objectstore: bluestore
+osd_scenario: lvm
 
 ##########################
 # group names
@@ -36,3 +43,17 @@ rgw_group_name: ceph-rgw
 
 dashboard_admin_password:
 grafana_admin_password:
+
+##########################
+# manager
+
+ceph_mgr_modules:
+  - balancer
+  - dashboard
+  - prometheus
+  - status
+
+##########################
+# rgw
+
+radosgw_frontend_port: 8081
