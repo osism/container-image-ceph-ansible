@@ -92,6 +92,8 @@ RUN ansible_version=$(python3 -c 'import ansible; print(ansible.release.__versio
 RUN mkdir -p \
         /ansible \
         /ansible/action_plugins \
+        /ansible/callback_plugins \
+        /ansible/filter_plugins \
         /ansible/library \
         /ansible/roles \
         /ansible/tasks
@@ -123,6 +125,8 @@ RUN PROJECT_VERSION=$(grep "ceph_ansible_version:" /release/$VERSION/ceph-$CEPH_
 # project specific instructions
 
 RUN cp /repository/plugins/actions/* /ansible/action_plugins \
+    && cp /repository/plugins/callback/* /ansible/callback_plugins \
+    && if [ -e /repository/plugins/filter ]; then cp repository/plugins/filter/* /ansible/filter_plugins; fi \
     && cp /repository/library/* /ansible/library \
     && for playbook in $(find /repository/infrastructure-playbooks -name "*.yml" -maxdepth 1); do echo $playbook && cp $playbook /ansible/ceph-"$(basename $playbook)"; done \
     && cp -r /repository/roles/* /ansible/roles \
