@@ -11,6 +11,7 @@ containerized_deployment: true
 fetch_directory: /share
 generate_fsid: false
 ntp_service_enabled: false
+dashboard_enabled: false
 
 # NOTE(berendt): We use an adapted Ceph image in which always the UID 64045 is used
 ceph_uid: 64045
