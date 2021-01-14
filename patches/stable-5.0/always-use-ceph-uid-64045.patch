@@ -1,15 +1,11 @@
---- a/roles/ceph-facts/tasks/facts.yml
-+++ b/roles/ceph-facts/tasks/facts.yml
-@@ -365,4 +365,10 @@
-   with_items:
-     - "{{ groups[mon_group_name] if groups[mon_group_name] | default([]) | length > 0 else [] }}"
-     - "{{ groups[mds_group_name] if groups[mds_group_name] | default([]) | length > 0 else [] }}"
--    - "{{ groups[client_group_name] if groups[client_group_name] | default([]) | length > 0 else [] }}"
-\ No newline at end of file
-+    - "{{ groups[client_group_name] if groups[client_group_name] | default([]) | length > 0 else [] }}"
-+
-+- name: set_fact ceph_uid - container
-+  set_fact:
-+    ceph_uid: 64045
-+  when:
-+    - containerized_deployment | bool
+--- a/roles/ceph-defaults/defaults/main.yml
++++ b/roles/ceph-defaults/defaults/main.yml
+@@ -245,7 +245,7 @@ generate_fsid: true
+ 
+ ceph_conf_key_directory: /etc/ceph
+ 
+-ceph_uid: "{{ '64045' if not containerized_deployment | bool and ansible_os_family == 'Debian' else '167' }}"
++ceph_uid: 64045
+ 
+ # Permissions for keyring files in /etc/ceph
+ ceph_keyring_permissions: '0600'

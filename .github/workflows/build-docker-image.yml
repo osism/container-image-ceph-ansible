@@ -26,6 +26,7 @@ jobs:
         ceph_version:
           - luminous
           - nautilus
+          - octopus
 
     steps:
       - uses: actions/checkout@v2
