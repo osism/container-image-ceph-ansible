@@ -1,6 +1,8 @@
+diff --git a/infrastructure-playbooks/purge-cluster.yml b/infrastructure-playbooks/purge-cluster.yml
+index cce84147..b8d37fce 100644
 --- a/infrastructure-playbooks/purge-cluster.yml
 +++ b/infrastructure-playbooks/purge-cluster.yml
-@@ -879,6 +879,4 @@
+@@ -878,6 +878,4 @@
      when: fetch_directory is not defined
  
    - name: purge fetch directory for localhost
@@ -8,9 +10,11 @@
 -      path: "{{ fetch_directory | default('fetch/') }}"
 -      state: absent
 +    shell: "/bin/rm -rf {{ fetch_directory }}/*"
+diff --git a/infrastructure-playbooks/purge-container-cluster.yml b/infrastructure-playbooks/purge-container-cluster.yml
+index 41409d65..652b1dcc 100644
 --- a/infrastructure-playbooks/purge-container-cluster.yml
 +++ b/infrastructure-playbooks/purge-container-cluster.yml
-@@ -499,150 +499,6 @@
+@@ -501,170 +501,6 @@
          path: /var/lib/ceph/crash
          state: absent
  
@@ -158,10 +162,30 @@
 -        ansible_os_family == 'RedHat' and
 -        not is_atomic
 -
+-    - name: find any service-cid file left
+-      find:
+-        paths: /run
+-        patterns:
+-          - "ceph-*.service-cid"
+-          - "rbd-target-api.service-cid"
+-          - "rbd-target-gw.service-cid"
+-          - "tcmu-runner.service-cid"
+-          - "node_exporter.service-cid"
+-          - "prometheus.service-cid"
+-          - "grafana-server.service-cid"
+-          - "alertmanager.service-cid"
+-      register: service_cid_files
+-
+-    - name: rm any service-cid file
+-      file:
+-        path: "{{ item.path }}"
+-        state: absent
+-      with_items: "{{ service_cid_files.files }}"
+-
+ 
  - name: purge ceph directories
  
-   hosts:
-@@ -673,12 +529,6 @@
+@@ -696,12 +532,6 @@
      shell: rm -rf /var/lib/ceph/*  # noqa 302
      changed_when: false
  
@@ -174,7 +198,7 @@
  - name: purge fetch directory
  
    hosts: localhost
-@@ -693,6 +543,4 @@
+@@ -716,6 +546,4 @@
      when: fetch_directory is not defined
  
    - name: purge fetch directory for localhost
