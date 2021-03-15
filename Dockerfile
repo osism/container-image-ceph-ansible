@@ -58,6 +58,7 @@ RUN apt-get update \
         rsync \
         sshpass \
         vim-tiny \
+    && python3 -m pip install --upgrade pip \
     && rm -rf /var/lib/apt/lists/*
 
 # add user
