@@ -16,7 +16,7 @@ CEPH_VERSION=${CEPH_VERSION:-nautilus}
 CREATED=$(date --rfc-3339=ns)
 DOCKER_REGISTRY=${DOCKER_REGISTRY:-quay.io}
 REPOSITORY=${REPOSITORY:-osism/ceph-ansible}
-REVISION=$(git rev-parse --short HEAD)
+REVISION=$(git rev-parse HEAD)
 VERSION=${VERSION:-latest}
 
 . defaults/$CEPH_VERSION.sh
@@ -45,5 +45,5 @@ docker buildx build \
     --label "org.opencontainers.image.url=https://www.osism.de" \
     --label "org.opencontainers.image.vendor=Betacloud Solutions GmbH" \
     --label "org.opencontainers.image.version=$VERSION" \
-    --tag "$TAG-$(git rev-parse --short HEAD)" \
+    --tag "$TAG-$REVISION" \
     $BUID_OPTS .

@@ -13,9 +13,8 @@ set -x
 CEPH_VERSION=${CEPH_VERSION:-nautilus}
 DOCKER_REGISTRY=${DOCKER_REGISTRY:-quay.io}
 REPOSITORY=${REPOSITORY:-osism/ceph-ansible}
+REVISION=$(git rev-parse HEAD)
 VERSION=${VERSION:-latest}
-
-COMMIT=$(git rev-parse --short HEAD)
 
 . defaults/$CEPH_VERSION.sh
 
@@ -26,14 +25,14 @@ fi
 if [[ $CEPH_VERSION == "master" ]]; then
     tag=$REPOSITORY:latest
 
-    docker tag "$tag-$COMMIT" "$tag"
+    docker tag "$tag-$REVISION" "$tag"
     docker push "$tag"
 else
     tag=$REPOSITORY:$CEPH_VERSION
 
-    docker tag "$tag-$COMMIT" "$tag-$VERSION"
+    docker tag "$tag-$REVISION" "$tag-$VERSION"
     docker push "$tag-$VERSION"
 
-    docker tag "$tag-$COMMIT" "$tag"
+    docker tag "$tag-$REVISION" "$tag"
     docker push "$tag"
 fi
