@@ -134,7 +134,8 @@ RUN cp /repository/plugins/actions/* /ansible/action_plugins \
     && if [ ! -e /ansible/roles/ceph-container-common ]; then ln -s /ansible/roles/ceph-docker-common /ansible/roles/ceph-container-common; fi \
     && if [ -e /repository/site-docker.yml.sample ]; then cp /repository/site-docker.yml.sample /ansible/ceph-site.ym; fi \
     && if [ -e /repository/site-container.yml.sample ]; then cp /repository/site-container.yml.sample /ansible/ceph-site.ym; fi \
-    && if [ -e /repository/dashboard.yml ]; then cp /repository/dashboard.yml /ansible/dashboard.yml; fi
+    && if [ -e /repository/dashboard.yml ]; then cp /repository/dashboard.yml /ansible/dashboard.yml; fi \
+    && if [ -e /repository/module_utils ]; then cp -r /repository/module_utils /ansible; fi
 
 # NOTE(berendt): this is a workaround for ceph-ansible < 3.0.0
 RUN mkdir -p \
