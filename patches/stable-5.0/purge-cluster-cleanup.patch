@@ -1,5 +1,3 @@
-diff --git a/infrastructure-playbooks/purge-cluster.yml b/infrastructure-playbooks/purge-cluster.yml
-index cce84147..b8d37fce 100644
 --- a/infrastructure-playbooks/purge-cluster.yml
 +++ b/infrastructure-playbooks/purge-cluster.yml
 @@ -878,6 +878,4 @@
@@ -10,11 +8,9 @@ index cce84147..b8d37fce 100644
 -      path: "{{ fetch_directory | default('fetch/') }}"
 -      state: absent
 +    shell: "/bin/rm -rf {{ fetch_directory }}/*"
-diff --git a/infrastructure-playbooks/purge-container-cluster.yml b/infrastructure-playbooks/purge-container-cluster.yml
-index 41409d65..652b1dcc 100644
 --- a/infrastructure-playbooks/purge-container-cluster.yml
 +++ b/infrastructure-playbooks/purge-container-cluster.yml
-@@ -501,170 +501,6 @@
+@@ -501,171 +501,6 @@
          path: /var/lib/ceph/crash
          state: absent
  
@@ -117,7 +113,7 @@ index 41409d65..652b1dcc 100644
 -        state: absent
 -        update_cache: yes
 -        autoremove: yes
--      when: ansible_os_family == 'Debian'
+-      when: ansible_facts['os_family'] == 'Debian'
 -
 -    - name: red hat based systems tasks
 -      block:
@@ -138,7 +134,7 @@ index 41409d65..652b1dcc 100644
 -              args:
 -                warn: no
 -          when:
--            ansible_pkg_mgr == "yum"
+-            ansible_facts['pkg_mgr'] == "yum"
 -
 -        - name: dnf related tasks on red hat
 -          block:
@@ -157,9 +153,9 @@ index 41409d65..652b1dcc 100644
 -              args:
 -                warn: no
 -          when:
--            ansible_pkg_mgr == "dnf"
+-            ansible_facts['pkg_mgr'] == "dnf"
 -      when:
--        ansible_os_family == 'RedHat' and
+-        ansible_facts['os_family'] == 'RedHat' and
 -        not is_atomic
 -
 -    - name: find any service-cid file left
@@ -182,10 +178,11 @@ index 41409d65..652b1dcc 100644
 -        state: absent
 -      with_items: "{{ service_cid_files.files }}"
 -
- 
+-
  - name: purge ceph directories
  
-@@ -696,12 +532,6 @@
+   hosts:
+@@ -696,12 +531,6 @@
      shell: rm -rf /var/lib/ceph/*  # noqa 302
      changed_when: false
  
@@ -198,7 +195,7 @@ index 41409d65..652b1dcc 100644
  - name: purge fetch directory
  
    hosts: localhost
-@@ -716,6 +546,4 @@
+@@ -716,6 +545,4 @@
      when: fetch_directory is not defined
  
    - name: purge fetch directory for localhost
