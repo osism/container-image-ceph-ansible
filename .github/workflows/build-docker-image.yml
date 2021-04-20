@@ -25,6 +25,7 @@ jobs:
       matrix:
         ceph_version:
           - octopus
+          - pacific
 
     steps:
       - uses: actions/checkout@v2
