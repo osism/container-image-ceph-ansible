@@ -1,0 +1,11 @@
+--- a/roles/ceph-defaults/defaults/main.yml
++++ b/roles/ceph-defaults/defaults/main.yml
+@@ -245,7 +245,7 @@ generate_fsid: true
+
+ ceph_conf_key_directory: /etc/ceph
+
+-ceph_uid: "{{ '64045' if not containerized_deployment | bool and ansible_facts['os_family'] == 'Debian' else '167' }}"
++ceph_uid: 64045
+
+ # Permissions for keyring files in /etc/ceph
+ ceph_keyring_permissions: '0600'
