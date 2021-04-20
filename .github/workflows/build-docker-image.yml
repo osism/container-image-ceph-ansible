@@ -24,8 +24,6 @@ jobs:
     strategy:
       matrix:
         ceph_version:
-          - luminous
-          - nautilus
           - octopus
 
     steps:
