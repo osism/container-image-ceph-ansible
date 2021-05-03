@@ -15,3 +15,11 @@
       with_items: "{{ groups['ceph'] }}"
       when:
         - (play_hosts | length) != (groups['ceph'] | length)
+
+- name: Apply role ceph-facts
+  gather_facts: false
+  hosts: ceph
+  become: true
+  roles:
+    - ceph-defaults
+    - ceph-facts
