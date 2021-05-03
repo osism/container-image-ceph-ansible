@@ -1,0 +1,3 @@
+# This is a workaround to be able to run local actions.
+
+dragon ALL=(root) NOPASSWD: ALL
