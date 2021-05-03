@@ -24,9 +24,6 @@ COPY files/playbooks/$CEPH_VERSION/* /ansible/
 COPY files/scripts/* /
 
 COPY files/ansible.cfg /etc/ansible/ansible.cfg
-COPY files/defaults.yml /ansible/group_vars/all/defaults.yml
-COPY files/images-$CEPH_VERSION.yml /ansible/group_vars/all/images-project.yml
-COPY files/images.yml /ansible/group_vars/all/images.yml
 COPY files/requirements.yml /ansible/galaxy/requirements.yml
 
 COPY files/src /src
@@ -67,6 +64,11 @@ RUN groupadd -g $GROUP_ID dragon \
     && groupadd -g $GROUP_ID_DOCKER docker \
     && useradd -g dragon -G docker -u $USER_ID -m -d /ansible dragon
 
+# hadolint ignore=DL3003
+RUN git clone https://github.com/osism/ansible-defaults /defaults \
+    && ( cd /defaults && git fetch --all --force ) \
+    && if [ $VERSION != "latest" ]; then  ( cd /defaults && git checkout tags/v$VERSION -b v$VERSION ); fi
+
 # run preparations
 
 WORKDIR /src
@@ -74,7 +76,11 @@ RUN git clone https://github.com/osism/release /release \
     && pip3 install --no-cache-dir -r requirements.txt \
     && mkdir -p /ansible/galaxy /ansible/group_vars/all \
     && python3 /src/render-python-requirements.py \
-    && python3 /src/render-versions.py
+    && python3 /src/render-versions.py \
+    && mkdir -p /ansible/group_vars \
+    && cp -r /defaults/* /ansible/group_vars/ \
+    && rm -f /ansible/group_vars/LICENSE /ansible/group_vars/README.md
+
 
 WORKDIR /
 
