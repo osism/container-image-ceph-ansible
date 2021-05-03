@@ -25,7 +25,6 @@ COPY files/scripts/* /
 
 COPY files/ansible.cfg /etc/ansible/ansible.cfg
 COPY files/defaults.yml /ansible/group_vars/all/defaults.yml
-COPY files/dragon_sudoers /etc/sudoers.d/dragon_sudoers
 COPY files/images-$CEPH_VERSION.yml /ansible/group_vars/all/images-project.yml
 COPY files/images.yml /ansible/group_vars/all/images.yml
 COPY files/requirements.yml /ansible/galaxy/requirements.yml
@@ -58,7 +57,6 @@ RUN apt-get update \
         python3-wheel \
         rsync \
         sshpass \
-        sudo \
         vim-tiny \
     && python3 -m pip install --upgrade pip \
     && rm -rf /var/lib/apt/lists/*
