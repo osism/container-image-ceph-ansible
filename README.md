@@ -1,4 +1,4 @@
-# docker-image-ceph-ansible
+# container-image-ceph-ansible
 
 [![Quay](https://img.shields.io/badge/Quay-osism%2Fceph--ansible-blue.svg)](https://quay.io/repository/osism/ceph-ansible)
 
