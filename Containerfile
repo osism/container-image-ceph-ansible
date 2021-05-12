@@ -110,7 +110,8 @@ RUN mkdir -p \
         /ansible/cache \
         /ansible/logs \
         /ansible/secrets \
-        /share
+        /share \
+        /interface
 
 # install required ansible collections & roles
 
@@ -156,7 +157,7 @@ RUN if [ $CEPH_VERSION != "luminous" ]; then python3 -m ara.setup.env > /ansible
 
 # set correct permssions
 
-RUN chown -R dragon: /ansible /share
+RUN chown -R dragon: /ansible /share /interface
 
 # cleanup
 
@@ -177,12 +178,12 @@ RUN apt-get clean \
       /usr/share/man/* \
       /var/tmp/*
 
-VOLUME ["/ansible/secrets", "/ansible/logs", "/ansible/cache", "/share"]
+VOLUME ["/ansible/secrets", "/ansible/logs", "/ansible/cache", "/share", "/interface"]
 
 USER dragon
 WORKDIR /ansible
 
-ENTRYPOINT ["/usr/bin/dumb-init", "--"]
+ENTRYPOINT ["/entrypoint.sh"]
 
 LABEL "org.opencontainers.image.documentation"="https://docs.osism.de" \
       "org.opencontainers.image.licenses"="ASL 2.0" \
