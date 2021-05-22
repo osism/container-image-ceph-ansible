@@ -62,7 +62,7 @@ RUN apt-get update \
 
 RUN groupadd -g $GROUP_ID dragon \
     && groupadd -g $GROUP_ID_DOCKER docker \
-    && useradd -g dragon -G docker -u $USER_ID -m -d /ansible dragon
+    && useradd -l -g dragon -G docker -u $USER_ID -m -d /ansible dragon
 
 # hadolint ignore=DL3003
 RUN git clone https://github.com/osism/ansible-defaults /defaults \
