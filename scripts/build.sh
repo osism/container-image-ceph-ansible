@@ -43,7 +43,7 @@ docker buildx build \
     --label "org.opencontainers.image.source=https://github.com/osism/container-image-ceph-ansible" \
     --label "org.opencontainers.image.title=ceph-ansible" \
     --label "org.opencontainers.image.url=https://www.osism.de" \
-    --label "org.opencontainers.image.vendor=Betacloud Solutions GmbH" \
+    --label "org.opencontainers.image.vendor=OSISM GmbH" \
     --label "org.opencontainers.image.version=$VERSION" \
     --tag "$TAG-$(git rev-parse --short HEAD)" \
     $BUID_OPTS .
