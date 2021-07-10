@@ -1,6 +1,6 @@
 --- a/infrastructure-playbooks/purge-cluster.yml
 +++ b/infrastructure-playbooks/purge-cluster.yml
-@@ -878,6 +878,4 @@
+@@ -877,6 +877,4 @@
      when: fetch_directory is not defined
  
    - name: purge fetch directory for localhost
@@ -70,6 +70,7 @@
 -    - "{{ rbdmirror_group_name|default('rbdmirrors') }}"
 -    - "{{ nfs_group_name|default('nfss') }}"
 -    - "{{ mgr_group_name|default('mgrs') }}"
+-    - "{{ monitoring_group_name|default('monitoring') }}"
 -
 -  become: true
 -
@@ -178,11 +179,10 @@
 -        state: absent
 -      with_items: "{{ service_cid_files.files }}"
 -
--
+ 
  - name: purge ceph directories
  
-   hosts:
-@@ -696,12 +531,6 @@
+@@ -697,12 +532,6 @@
      shell: rm -rf /var/lib/ceph/*  # noqa 302
      changed_when: false
  
@@ -195,7 +195,7 @@
  - name: purge fetch directory
  
    hosts: localhost
-@@ -716,6 +545,4 @@
+@@ -717,6 +546,4 @@
      when: fetch_directory is not defined
  
    - name: purge fetch directory for localhost
