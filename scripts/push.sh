@@ -35,10 +35,11 @@ if [[ $CEPH_VERSION == "master" ]]; then
     docker tag "$tag-$COMMIT" "$tag"
     docker push "$tag"
 else
-    tag=$REPOSITORY:$CEPH_VERSION
-
-    docker tag "$tag-$COMMIT" "$tag-$VERSION"
-    docker push "$tag-$VERSION"
+    if [[ $VERSION == "latest" ]]; then
+        tag=$REPOSITORY:$CEPH_VERSION
+    else
+        tag=$REPOSITORY:$VERSION
+    fi
 
     docker tag "$tag-$COMMIT" "$tag"
     docker push "$tag"
