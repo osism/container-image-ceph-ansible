@@ -28,21 +28,15 @@ COPY files/requirements.yml /ansible/galaxy/requirements.yml
 
 COPY files/src /src
 
-# add inventory files
-
-ADD https://raw.githubusercontent.com/osism/cfg-generics/master/inventory/50-ceph /ansible/inventory.generics/50-ceph
-ADD https://raw.githubusercontent.com/osism/cfg-generics/master/inventory/51-ceph /ansible/inventory.generics/51-ceph
-
 # show motd
-
 RUN echo '[ ! -z "$TERM" -a -r /etc/motd ] && cat /etc/motd' >> /etc/bash.bashrc
 
 # upgrade/install required packages
-
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
         dumb-init \
         git \
+        jq \
         libffi-dev \
         libssl-dev \
         libyaml-dev \
@@ -55,26 +49,39 @@ RUN apt-get update \
         rsync \
         sshpass \
         vim-tiny \
-    && python3 -m pip install --upgrade pip \
+    && python3 -m pip install --no-cache-dir --upgrade pip==21.1.3 \
+    && pip3 install --no-cache-dir -r /src/requirements.txt \
     && rm -rf /var/lib/apt/lists/*
 
 # add user
-
 RUN groupadd -g $GROUP_ID dragon \
     && groupadd -g $GROUP_ID_DOCKER docker \
     && useradd -l -g dragon -G docker -u $USER_ID -m -d /ansible dragon
 
-# hadolint ignore=DL3003
-RUN git clone https://github.com/osism/ansible-defaults /defaults \
-    && ( cd /defaults && git fetch --all --force ) \
-    && if [ $VERSION != "latest" ]; then  ( cd /defaults && git checkout tags/v$VERSION -b v$VERSION ); fi
+# prepare release repository
+RUN git clone https://github.com/osism/release /release
 
 # run preparations
 
+# hadolint ignore=DL3003
+RUN git clone https://github.com/osism/ansible-playbooks /playbooks \
+    && ( cd /playbooks || exit; git fetch --all --force; git checkout "$(yq -M -r .playbooks_version "/release/$VERSION/base.yml")" )
+
+# hadolint ignore=DL3003
+RUN git clone https://github.com/osism/ansible-defaults /defaults \
+    && ( cd /defaults || exit; git fetch --all --force; git checkout "$(yq -M -r .defaults_version "/release/$VERSION/base.yml")" )
+
+# hadolint ignore=DL3003
+RUN git clone https://github.com/osism/cfg-generics /generics  \
+    && ( cd /generics || exit; git fetch --all --force; git checkout "$(yq -M -r .generics_version "/release/$VERSION/base.yml")" )
+
+# add inventory files
+RUN mkdir -p /ansible/inventory.generics \
+    && cp /generics/inventory/50-ceph /ansible/inventory.generics/50-ceph \
+    && cp /generics/inventory/51-ceph /ansible/inventory.generics/51-ceph
+
 WORKDIR /src
-RUN git clone https://github.com/osism/release /release \
-    && pip3 install --no-cache-dir -r requirements.txt \
-    && mkdir -p /ansible/galaxy /ansible/group_vars/all \
+RUN mkdir -p /ansible/galaxy /ansible/group_vars/all \
     && python3 /src/render-python-requirements.py \
     && python3 /src/render-versions.py \
     && mkdir -p /ansible/group_vars \
@@ -85,11 +92,9 @@ RUN git clone https://github.com/osism/release /release \
 WORKDIR /
 
 # install required python packages
-
 RUN pip3 install --no-cache-dir -r /requirements.txt
 
 # set ansible version in the motd
-
 RUN ansible_version=$(python3 -c 'import ansible; print(ansible.release.__version__)') \
     && sed -i -e "s/ANSIBLE_VERSION/$ansible_version/" /etc/motd
 
@@ -105,7 +110,7 @@ RUN mkdir -p \
         /ansible/roles \
         /ansible/tasks
 
-# exportes as volumes
+# volumes
 RUN mkdir -p \
         /ansible/cache \
         /ansible/logs \
@@ -114,14 +119,12 @@ RUN mkdir -p \
         /interface
 
 # install required ansible collections & roles
-
 RUN ansible-galaxy role install -v -f -r /ansible/galaxy/requirements.yml -p /usr/share/ansible/roles \
     && ln -s /usr/share/ansible/roles /ansible/galaxy \
     && ansible-galaxy collection install -v -f -r /ansible/galaxy/requirements.yml -p /usr/share/ansible/collections \
     && ln -s /usr/share/ansible/collections /ansible/collections
 
 # prepare project repository
-
 RUN PROJECT_VERSION=$(grep "ceph_ansible_version:" /release/$VERSION/ceph-$CEPH_VERSION.yml | awk -F': ' '{ print $2 }') \
     && git clone -b $PROJECT_VERSION https://github.com/ceph/ceph-ansible /repository \
     && for patchfile in $(find /patches/$PROJECT_VERSION -name "*.patch"); do \
@@ -131,7 +134,6 @@ RUN PROJECT_VERSION=$(grep "ceph_ansible_version:" /release/$VERSION/ceph-$CEPH_
        done
 
 # project specific instructions
-
 RUN cp /repository/plugins/actions/* /ansible/action_plugins \
     && cp /repository/plugins/callback/* /ansible/callback_plugins \
     && if [ -e /repository/plugins/filter ]; then cp repository/plugins/filter/* /ansible/filter_plugins; fi \
@@ -149,18 +151,17 @@ RUN mkdir -p \
         /ansible/roles/ceph-config \
         /ansible/roles/ceph-defaults
 
+# hadolint ignore=DL3059
 RUN mkdir -p /tests \
     && cp -r /repository/tests/* /tests
 
-# NOTE: Do not activate ARA at Luminous. Not supported by the Ansible version (2.6.x) used there.
-RUN if [ $CEPH_VERSION != "luminous" ]; then python3 -m ara.setup.env > /ansible/ara.env; fi
+# copy ara configuration
+RUN python3 -m ara.setup.env > /ansible/ara.env
 
 # set correct permssions
-
 RUN chown -R dragon: /ansible /share /interface
 
 # cleanup
-
 RUN apt-get clean \
     && apt-get remove -y  \
       git \
@@ -184,9 +185,3 @@ USER dragon
 WORKDIR /ansible
 
 ENTRYPOINT ["/entrypoint.sh"]
-
-LABEL "org.opencontainers.image.documentation"="https://docs.osism.de" \
-      "org.opencontainers.image.licenses"="ASL 2.0" \
-      "org.opencontainers.image.source"="https://github.com/osism/container-image-ceph-ansible" \
-      "org.opencontainers.image.url"="https://www.osism.de" \
-      "org.opencontainers.image.vendor"="OSISM GmbH"
