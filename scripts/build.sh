@@ -31,12 +31,6 @@ if [[ -n $DOCKER_REGISTRY ]]; then
     REPOSITORY="$DOCKER_REGISTRY/$REPOSITORY"
 fi
 
-if [[ $CEPH_VERSION == "master" ]]; then
-    TAG=$REPOSITORY:latest
-else
-    TAG=$REPOSITORY:$CEPH_VERSION
-fi
-
 docker buildx build \
     --load \
     --build-arg "CEPH_VERSION=$CEPH_VERSION" \
@@ -51,5 +45,5 @@ docker buildx build \
     --label "org.opencontainers.image.url=https://www.osism.tech" \
     --label "org.opencontainers.image.vendor=OSISM GmbH" \
     --label "org.opencontainers.image.version=$VERSION" \
-    --tag "$TAG-$(git rev-parse --short HEAD)" \
+    --tag "$(git rev-parse --short HEAD)" \
     $BUID_OPTS .
