@@ -25,8 +25,7 @@ environment = jinja2.Environment(loader=loader)
 
 template = environment.get_template("versions.yml.j2")
 result = template.render({
-  'ceph_ansible_version': versions_ceph['ceph_ansible_version'],
-  'repository_version': versions['repository_version']
+  'ceph_ansible_version': versions_ceph['ceph_ansible_version']
 })
 with open("/ansible/group_vars/all/versions.yml", "w+") as fp:
     fp.write(result)
