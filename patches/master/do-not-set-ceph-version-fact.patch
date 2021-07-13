@@ -1,0 +1,51 @@
+diff --git a/roles/ceph-common/tasks/main.yml b/roles/ceph-common/tasks/main.yml
+index 648eee11..2f4794e2 100644
+--- a/roles/ceph-common/tasks/main.yml
++++ b/roles/ceph-common/tasks/main.yml
+@@ -19,16 +19,6 @@
+   when: ansible_facts['os_family'] == 'ClearLinux'
+   tags: package-install
+ 
+-- name: get ceph version
+-  command: ceph --version
+-  changed_when: false
+-  check_mode: no
+-  register: ceph_version
+-
+-- name: set_fact ceph_version
+-  set_fact:
+-    ceph_version: "{{ ceph_version.stdout.split(' ')[2] }}"
+-
+ # override ceph_stable_release for ceph_dev and rhcs installations since ceph_stable_release is not mandatory
+ - name: include release-rhcs.yml
+   include_tasks: release-rhcs.yml
+@@ -62,4 +52,4 @@
+   when:
+     - ansible_facts['os_family'] == 'RedHat'
+     - inventory_hostname in groups.get(nfs_group_name, [])
+-      or inventory_hostname in groups.get(rgwloadbalancer_group_name, [])
+\ No newline at end of file
++      or inventory_hostname in groups.get(rgwloadbalancer_group_name, [])
+diff --git a/roles/ceph-container-common/tasks/main.yml b/roles/ceph-container-common/tasks/main.yml
+index aa9139b0..99bccff2 100644
+--- a/roles/ceph-container-common/tasks/main.yml
++++ b/roles/ceph-container-common/tasks/main.yml
+@@ -10,18 +10,5 @@
+   include_tasks: fetch_image.yml
+   tags: fetch_container_image
+ 
+-- name: get ceph version
+-  command: >
+-    {{ container_binary }} run --rm --net=host --entrypoint /usr/bin/ceph
+-    {{ ceph_client_docker_registry }}/{{ ceph_client_docker_image }}:{{ ceph_client_docker_image_tag }}
+-    --version
+-  changed_when: false
+-  check_mode: no
+-  register: ceph_version
+-
+-- name: set_fact ceph_version ceph_version.stdout.split
+-  set_fact:
+-    ceph_version: "{{ ceph_version.stdout.split(' ')[2] }}"
+-
+ - name: include release.yml
+   include_tasks: release.yml
