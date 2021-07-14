@@ -21,9 +21,23 @@ environment = jinja2.Environment(loader=loader)
 # render versions.yml
 
 template = environment.get_template("versions.yml.j2")
-result = template.render({
-  'ceph_version': CEPH_VERSION
-})
+
+if VERSION == "latest":
+    result = template.render({
+      'ceph_ansible_version': CEPH_VERSION,
+      'ceph_manager_version': CEPH_VERSION,
+      'cephclient_version': CEPH_VERSION
+    })
+else:
+    with open("/release/%s/ceph.yml" % VERSION, "rb") as fp:
+        versions_ceph = yaml.load(fp, Loader=yaml.FullLoader)
+
+    result = template.render({
+      'ceph_ansible_version': versions['manager_version'],
+      'ceph_image_version': versions_ceph['docker_images']['ceph'],
+      'cephclient_version': versions_ceph['docker_images']['cephclient']
+    })
+
 with open("/ansible/group_vars/all/versions.yml", "w+") as fp:
     fp.write(result)
 
