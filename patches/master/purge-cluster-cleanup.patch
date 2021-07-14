@@ -1,80 +1,77 @@
+diff --git a/infrastructure-playbooks/purge-cluster.yml b/infrastructure-playbooks/purge-cluster.yml
+index 914b2ae3..1b90abf5 100644
 --- a/infrastructure-playbooks/purge-cluster.yml
 +++ b/infrastructure-playbooks/purge-cluster.yml
-@@ -806,6 +806,4 @@
-     when: fetch_directory is not defined
+@@ -814,6 +814,4 @@
+       when: fetch_directory is not defined
  
-   - name: purge fetch directory for localhost
--    file:
--      path: "{{ fetch_directory }}"
--      state: absent
-+    shell: "/bin/rm -rf {{ fetch_directory }}/*"
+     - name: purge fetch directory for localhost
+-      file:
+-        path: "{{ fetch_directory | default('fetch/') }}"
+-        state: absent
++      shell: "/bin/rm -rf {{ fetch_directory | default('fetch/'}} }}/*"
+diff --git a/infrastructure-playbooks/purge-container-cluster.yml b/infrastructure-playbooks/purge-container-cluster.yml
+index a2f77123..9c48bffa 100644
 --- a/infrastructure-playbooks/purge-container-cluster.yml
 +++ b/infrastructure-playbooks/purge-container-cluster.yml
-@@ -459,149 +459,6 @@
-         - /etc/prometheus
-       failed_when: false
+@@ -465,164 +465,6 @@
+         state: absent
+ 
  
 -- name: check container hosts
--
 -  hosts:
--    - "{{ mon_group_name|default('mons') }}"
--    - "{{ osd_group_name|default('osds') }}"
--    - "{{ mds_group_name|default('mdss') }}"
--    - "{{ rgw_group_name|default('rgws') }}"
--    - "{{ rbdmirror_group_name|default('rbdmirrors') }}"
--    - "{{ nfs_group_name|default('nfss') }}"
--    - "{{ mgr_group_name|default('mgrs') }}"
--
+-    - "{{ mon_group_name | default('mons') }}"
+-    - "{{ osd_group_name | default('osds') }}"
+-    - "{{ mds_group_name | default('mdss') }}"
+-    - "{{ rgw_group_name | default('rgws') }}"
+-    - "{{ rbdmirror_group_name | default('rbdmirrors') }}"
+-    - "{{ nfs_group_name | default('nfss') }}"
+-    - "{{ mgr_group_name | default('mgrs') }}"
 -  gather_facts: true
 -  become: true
--
 -  tasks:
+-    - import_role:
+-        name: ceph-defaults
 -
--  - import_role:
--      name: ceph-defaults
+-    - import_role:
+-        name: ceph-facts
+-        tasks_from: container_binary
 -
--  - import_role:
--      name: ceph-facts
--      tasks_from: container_binary
+-    - name: remove stopped/exited containers
+-      command: >
+-        {{ container_binary }} container prune -f
+-      changed_when: false
 -
--  - name: remove stopped/exited containers
--    command: >
--      {{ container_binary }} container prune{% if container_binary == 'docker' %} -f{% endif %}
--    changed_when: false
+-    - name: show container list on all the nodes (should be empty)
+-      command: >
+-        {{ container_binary }} ps --filter='name=ceph' -a -q
+-      register: containers_list
+-      changed_when: false
 -
--  - name: show container list on all the nodes (should be empty)
--    command: >
--      {{ container_binary }} ps --filter='name=ceph' -a -q
--    register: containers_list
--    changed_when: false
+-    - name: show container images on all the nodes (should be empty if tags was passed remove_img)
+-      command: >
+-        {{ container_binary }} images
+-      register: images_list
+-      changed_when: false
 -
--  - name: show container images on all the nodes (should be empty if tags was passed remove_img)
--    command: >
--      {{ container_binary }} images
--    register: images_list
--    changed_when: false
--
--  - name: fail if container are still present
--    fail:
--      msg: "It looks like container are still present."
--    when: containers_list.stdout_lines|length > 0
+-    - name: fail if container are still present
+-      fail:
+-        msg: "It looks like container are still present."
+-      when: containers_list.stdout_lines|length > 0
 -
 -
 -- name: final cleanup
--
 -  hosts:
--    - "{{ mon_group_name|default('mons') }}"
--    - "{{ osd_group_name|default('osds') }}"
--    - "{{ mds_group_name|default('mdss') }}"
--    - "{{ rgw_group_name|default('rgws') }}"
--    - "{{ rbdmirror_group_name|default('rbdmirrors') }}"
--    - "{{ nfs_group_name|default('nfss') }}"
--    - "{{ mgr_group_name|default('mgrs') }}"
--
+-    - "{{ mon_group_name | default('mons') }}"
+-    - "{{ osd_group_name | default('osds') }}"
+-    - "{{ mds_group_name | default('mdss') }}"
+-    - "{{ rgw_group_name | default('rgws') }}"
+-    - "{{ rbdmirror_group_name | default('rbdmirrors') }}"
+-    - "{{ nfs_group_name | default('nfss') }}"
+-    - "{{ mgr_group_name | default('mgrs') }}"
+-    - "{{ monitoring_group_name | default('monitoring') }}"
 -  become: true
--
 -  tags: with_pkg
--
 -  tasks:
 -    - import_role:
 -        name: ceph-defaults
@@ -93,6 +90,7 @@
 -
 -    - name: remove ceph container image
 -      command: "{{ container_binary }} rmi {{ ceph_docker_registry }}/{{ ceph_docker_image }}:{{ ceph_docker_image_tag }}"
+-      changed_when: false
 -      tags:
 -        - remove_img
 -
@@ -112,7 +110,7 @@
 -        state: absent
 -        update_cache: yes
 -        autoremove: yes
--      when: ansible_os_family == 'Debian'
+-      when: ansible_facts['os_family'] == 'Debian'
 -
 -    - name: red hat based systems tasks
 -      block:
@@ -133,7 +131,7 @@
 -              args:
 -                warn: no
 -          when:
--            ansible_pkg_mgr == "yum"
+-            ansible_facts['pkg_mgr'] == "yum"
 -
 -        - name: dnf related tasks on red hat
 -          block:
@@ -152,32 +150,53 @@
 -              args:
 -                warn: no
 -          when:
--            ansible_pkg_mgr == "dnf"
+-            ansible_facts['pkg_mgr'] == "dnf"
 -      when:
--        ansible_os_family == 'RedHat' and
+-        ansible_facts['os_family'] == 'RedHat' and
 -        not is_atomic
 -
- - name: purge ceph directories
- 
-   hosts:
-@@ -629,12 +486,6 @@
-   - name: remove ceph data
-     shell: rm -rf /var/lib/ceph/*
- 
--  # (todo): remove this when we are able to manage docker
--  # service on atomic host.
--  - name: remove docker data
--    shell: rm -rf /var/lib/docker/*
--    when: not is_atomic | bool
+-    - name: find any service-cid file left
+-      find:
+-        paths: /run
+-        patterns:
+-          - "ceph-*.service-cid"
+-          - "rbd-target-api.service-cid"
+-          - "rbd-target-gw.service-cid"
+-          - "tcmu-runner.service-cid"
+-          - "node_exporter.service-cid"
+-          - "prometheus.service-cid"
+-          - "grafana-server.service-cid"
+-          - "alertmanager.service-cid"
+-      register: service_cid_files
 -
+-    - name: rm any service-cid file
+-      file:
+-        path: "{{ item.path }}"
+-        state: absent
+-      with_items: "{{ service_cid_files.files }}"
+-
+-
+ - name: purge ceph directories
+   hosts:
+     - "{{ mon_group_name | default('mons') }}"
+@@ -649,12 +491,6 @@
+       shell: rm -rf /var/lib/ceph/*  # noqa 302
+       changed_when: false
+ 
+-    # (todo): remove this when we are able to manage docker
+-    # service on atomic host.
+-    - name: remove docker data
+-      shell: rm -rf /var/lib/docker/*  # noqa 302
+-      when: not is_atomic | bool
+-
+ 
  - name: purge fetch directory
- 
    hosts: localhost
-@@ -649,6 +500,4 @@
-     when: fetch_directory is not defined
+@@ -666,6 +502,4 @@
+       when: fetch_directory is not defined
  
-   - name: purge fetch directory for localhost
--    file:
--      path: "{{ fetch_directory }}/"
--      state: absent
-+    shell: "/bin/rm -rf {{ fetch_directory }}/*"
+     - name: purge fetch directory for localhost
+-      file:
+-        path: "{{ fetch_directory | default('fetch/') }}/"
+-        state: absent
++      shell: "/bin/rm -rf {{ fetch_directory | default('fetch/') }}/*"
