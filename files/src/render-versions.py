@@ -25,7 +25,7 @@ template = environment.get_template("versions.yml.j2")
 if VERSION == "latest":
     result = template.render({
       'ceph_ansible_version': CEPH_VERSION,
-      'ceph_manager_version': CEPH_VERSION,
+      'ceph_image_version': CEPH_VERSION,
       'cephclient_version': CEPH_VERSION
     })
 else:
