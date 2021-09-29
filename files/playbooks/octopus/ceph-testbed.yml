@@ -14,3 +14,4 @@
     - ceph-mgr
     - ceph-osd
     - ceph-mds
+    - ceph-crash
