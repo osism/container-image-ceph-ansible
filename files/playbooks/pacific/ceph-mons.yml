@@ -1,6 +1,5 @@
 ---
 - name: Apply role ceph-mon
-  gather_facts: false
   hosts: ceph-mon
   become: true
 

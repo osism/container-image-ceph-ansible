@@ -1,7 +1,6 @@
 ---
 - name: Apply role ceph-rbd-mirror
   hosts: ceph-rbd-mirror
-  gather_facts: false
   become: true
   roles:
     - ceph-defaults

@@ -1,6 +1,5 @@
 ---
 - name: Apply role ceph-mgr
-  gather_facts: false
   hosts: ceph-mgr
   become: true
   roles:

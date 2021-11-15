@@ -1,6 +1,5 @@
 ---
 - name: Apply role ceph-nfs
-  gather_facts: false
   hosts: ceph-nfs
   become: true
   roles:
