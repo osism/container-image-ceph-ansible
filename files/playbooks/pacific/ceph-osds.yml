@@ -1,6 +1,5 @@
 ---
 - name: Run preparations
-  gather_facts: false
   hosts: ceph
   become: true
   roles:
@@ -8,7 +7,6 @@
     - ceph-facts
 
 - name: Apply role ceph-osd
-  gather_facts: false
   hosts: ceph-osd
   become: true
   roles:

@@ -1,6 +1,5 @@
 ---
 - name: Apply role ceph-restapi
-  gather_facts: false
   hosts: ceph-restapi
   become: true
   roles:

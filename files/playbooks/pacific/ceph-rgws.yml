@@ -1,6 +1,5 @@
 ---
 - name: Apply role ceph-rgw
-  gather_facts: false
   hosts: ceph-rgw
   become: true
   roles:

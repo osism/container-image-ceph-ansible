@@ -1,6 +1,5 @@
 ---
 - name: Apply role ceph-iscsigw
-  gather_facts: false
   hosts: ceph-iscsigw
   become: true
   roles:
