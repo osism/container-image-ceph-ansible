@@ -35,6 +35,7 @@ else:
     result = template.render({
       'ceph_ansible_version': versions['manager_version'],
       'ceph_image_version': versions_ceph['docker_images']['ceph'],
+      'ceph_version': versions_ceph['ceph_version'],
       'cephclient_version': versions_ceph['docker_images']['cephclient']
     })
 
