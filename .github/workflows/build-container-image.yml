@@ -27,6 +27,7 @@ jobs:
     strategy:
       matrix:
         ceph_version:
+          - nautilus
           - octopus
           - pacific
 
