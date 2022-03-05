@@ -1,5 +1,5 @@
 Jinja2==3.0.3
 PyYAML==6.0
 netaddr==0.8.0
-pottery==2.3.6
+pottery==3.0.0
 yq==2.12.2
