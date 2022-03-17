@@ -18,7 +18,6 @@ jobs:
       fail-fast: false
       matrix:
         ceph_version:
-          - nautilus
           - octopus
           - pacific
 
