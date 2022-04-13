@@ -25,14 +25,14 @@
   tasks:
 
   - name: exit playbook, if list of hosts contains more than one node
-    fail:
+    ansible.builtin.fail:
       msg: >
         "Exiting purge-storage-node playbook, node was NOT purged.
         This playbook can only be used with a single node."
       when: play_hosts|length > 0
 
   - name: exit playbook, if user did not mean to purge node
-    fail:
+    ansible.builtin.fail:
       msg: >
         "Exiting purge-storage-node playbook, node was NOT purged.
          To purge the node, either say 'yes' on the prompt or
@@ -41,7 +41,7 @@
     when: ireallymeanit != 'yes'
 
   - name: set ceph_docker_registry value if not set
-    set_fact:
+    ansible.builtin.set_fact:
       ceph_docker_registry: "docker.io"
     when: ceph_docker_registry is not defined
 
@@ -55,36 +55,36 @@
   tasks:
 
   - name: exit playbook, if list of hosts contains more than one node
-    fail:
+    ansible.builtin.fail:
       msg: >
         "Exiting purge-storage-node playbook, node was NOT purged.
         This playbook can only be used with a single node."
       when: play_hosts|length > 0
 
-  - import_role:
+  - ansible.builtin.import_role:
       name: ceph-defaults
 
   - name: get all the running osds
-    shell: |
+    ansible.builtin.shell: |
       systemctl list-units --all | grep -oE "ceph-osd@([0-9]+).service"
     register: osd_units
     ignore_errors: true
 
   - name: disable ceph osd service
-    service:
+    ansible.builtin.service:
       name: "{{ item }}"
       state: stopped
       enabled: false
     with_items: "{{ osd_units.stdout_lines }}"
 
   - name: remove osd mountpoint tree
-    file:
+    ansible.builtin.file:
       path: /var/lib/ceph/osd/
       state: absent
     ignore_errors: true
 
   - name: default lvm_volumes if not defined
-    set_fact:
+    ansible.builtin.set_fact:
       lvm_volumes: []
     when: lvm_volumes is not defined
 
@@ -118,12 +118,12 @@
     when: devices | default([]) | length > 0
 
   - name: remove ceph osd service
-    file:
+    ansible.builtin.file:
       path: /etc/systemd/system/ceph-osd@.service
       state: absent
 
   - name: include vars from group_vars/osds.yml
-    include_vars:
+    ansible.builtin.include_vars:
       file: "{{ item }}"
     with_first_found:
       - files:
@@ -132,13 +132,13 @@
         skip: true
 
   - name: find all osd_disk_prepare logs
-    find:
+    ansible.builtin.find:
       paths: "{{ ceph_osd_docker_run_script_path | default('/usr/share') }}"
       pattern: "ceph-osd-prepare-*.log"
     register: osd_disk_prepare_logs
 
   - name: ensure all osd_disk_prepare logs are removed
-    file:
+    ansible.builtin.file:
       path: "{{ item.path }}"
       state: absent
     with_items: "{{ osd_disk_prepare_logs.files }}"
@@ -154,14 +154,14 @@
   tasks:
 
   - name: exit playbook, if list of hosts contains more than one node
-    fail:
+    ansible.builtin.fail:
       msg: >
         "Exiting purge-storage-node playbook, node was NOT purged.
         This playbook can only be used with a single node."
       when: play_hosts|length > 0
 
   - name: purge ceph directories for "{{ ansible_hostname }}"
-    file:
+    ansible.builtin.file:
       path: "{{ item }}"
       state: absent
     with_items:
@@ -169,4 +169,4 @@
       - /var/log/ceph
 
   - name: remove ceph data
-    shell: rm -rf /var/lib/ceph/*
+    ansible.builtin.shell: rm -rf /var/lib/ceph/*
