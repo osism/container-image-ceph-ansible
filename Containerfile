@@ -37,6 +37,7 @@ RUN apt-get update \
         git \
         jq \
         libffi-dev \
+        libssh-dev \
         libssl-dev \
         libyaml-dev \
         openssh-client \
@@ -171,6 +172,7 @@ RUN apt-get clean \
     && apt-get remove -y  \
       git \
       libffi-dev \
+      libssh-dev \
       libssl-dev \
       libyaml-dev \
       python3-dev \
