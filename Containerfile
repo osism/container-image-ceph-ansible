@@ -139,8 +139,8 @@ RUN PROJECT_VERSION=$(grep "ceph_ansible_version:" /release/$VERSION/ceph-$CEPH_
        done
 
 # project specific instructions
-RUN cp /repository/plugins/actions/* /ansible/action_plugins \
-    && cp /repository/plugins/callback/* /ansible/callback_plugins \
+RUN if [ -e /repository/plugins/actions ]; then cp /repository/plugins/actions/* /ansible/action_plugins; fi \
+    && if [ -e /repository/plugins/callback ]; then cp /repository/plugins/callback/* /ansible/callback_plugins; fi \
     && if [ -e /repository/plugins/filter ]; then cp repository/plugins/filter/* /ansible/filter_plugins; fi \
     && cp /repository/library/* /ansible/library \
     && for playbook in $(find /repository/infrastructure-playbooks -name "*.yml" -maxdepth 1); do echo $playbook && cp $playbook /ansible/ceph-"$(basename $playbook)"; done \

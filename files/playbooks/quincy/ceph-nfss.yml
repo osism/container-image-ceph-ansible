@@ -1,0 +1,11 @@
+---
+- name: Apply role ceph-nfs
+  hosts: ceph-nfs
+  become: true
+  roles:
+    - ceph-defaults
+    - ceph-facts
+    - ceph-handler
+    - ceph-container-common
+    - ceph-config
+    - ceph-nfs

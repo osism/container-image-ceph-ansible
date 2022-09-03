@@ -1,0 +1,18 @@
+---
+- name: Run preparations
+  hosts: ceph
+  become: true
+  roles:
+    - ceph-defaults
+    - ceph-facts
+
+- name: Apply role ceph-crash
+  hosts: ceph
+  become: true
+  roles:
+    - ceph-defaults
+    - ceph-facts
+    - ceph-handler
+    - ceph-container-common
+    - ceph-config
+    - ceph-crash
