@@ -20,6 +20,7 @@ jobs:
         ceph_version:
           - octopus
           - pacific
+          - quincy
 
     steps:
       - uses: actions/checkout@v3
