@@ -1,5 +1,6 @@
 ---
 - name: Deploy base environment
+  gather_facts: false
   hosts: ceph
   become: true
 
@@ -12,5 +13,4 @@
     - ceph-mon
     - ceph-mgr
     - ceph-osd
-    - ceph-mds
     - ceph-crash
