@@ -47,3 +47,5 @@ buildah build-using-dockerfile \
     --label "org.opencontainers.image.version=$VERSION" \
     --tag "$(git rev-parse --short HEAD)" \
     $BUID_OPTS .
+
+buildah push $(git rev-parse --short HEAD) docker-daemon:ceph-ansible:$(git rev-parse --short HEAD)

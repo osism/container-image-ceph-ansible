@@ -13,9 +13,6 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Setup docker
-        uses: docker/setup-buildx-action@v2
-
       - name: Get the version
         id: get_version
         run: echo ::set-output name=VERSION::${GITHUB_REF#refs/tags/}
@@ -27,6 +24,12 @@ jobs:
           GIT_SHA: ${{ github.sha }}
           REPOSITORY: osism/release/ceph-ansible
           VERSION: ${{ steps.get_version.outputs.VERSION }}
+
+      - name: Generate SBOM
+        uses: anchore/sbom-action@v0
+        with:
+          artifact-name: ceph-ansible-${{ steps.get_version.outputs.VERSION }}.spdx
+          image: "ceph-ansible:${{ steps.revision.outputs.short }}"
 
       - name: Push container image
         run: |
