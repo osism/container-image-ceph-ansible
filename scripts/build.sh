@@ -45,6 +45,7 @@ buildah build-using-dockerfile \
     --label "org.opencontainers.image.url=https://www.osism.tech" \
     --label "org.opencontainers.image.vendor=OSISM GmbH" \
     --label "org.opencontainers.image.version=$VERSION" \
+    --label "de.osism.release.ceph=$CEPH_VERSION" \
     --tag "$(git rev-parse --short HEAD)" \
     $BUID_OPTS .
 
