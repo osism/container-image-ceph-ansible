@@ -159,8 +159,13 @@ RUN if [ -e /repository/plugins/actions ]; then cp /repository/plugins/actions/*
     && if [ -e /repository/site-docker.yml.sample ]; then cp /repository/site-docker.yml.sample /ansible/ceph-site.ym; fi \
     && if [ -e /repository/site-container.yml.sample ]; then cp /repository/site-container.yml.sample /ansible/ceph-site.ym; fi \
     && if [ -e /repository/dashboard.yml ]; then cp /repository/dashboard.yml /ansible/dashboard.yml; fi \
-    && if [ -e /repository/module_utils ]; then cp -r /repository/module_utils /ansible; fi \
-    && rm -f /ansible/ceph-purge-*.yml
+    && if [ -e /repository/module_utils ]; then cp -r /repository/module_utils /ansible; fi
+
+# use our own purge playbooks
+RUN rm -f /ansible/ceph-purge-*.yml
+
+COPY files/playbooks/$CEPH_VERSION/ceph-purge-storage-node.yml /ansible/ceph-purge-storage-node.yml
+COPY files/playbooks/$CEPH_VERSION/ceph-purge-cluster.yml /ansible/ceph-purge-cluster.yml
 
 # NOTE(berendt): this is a workaround for ceph-ansible < 3.0.0
 RUN mkdir -p \
