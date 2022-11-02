@@ -917,6 +917,7 @@
         - name: remove ceph container image
           command: "{{ container_binary }} rmi {{ ceph_docker_registry }}/{{ ceph_docker_image }}:{{ ceph_docker_image_tag }}"
           changed_when: false
+          ignore_errors: true
           when:
             - inventory_hostname not in groups.get(client_group_name, [])
               or inventory_hostname == groups.get(client_group_name, []) | first
@@ -976,14 +977,6 @@
         - name: remove ceph data
           shell: rm -rf /var/lib/ceph/*  # noqa 302
           changed_when: false
-
-        # (todo): remove this when we are able to manage docker
-        # service on atomic host.
-        - name: remove docker data
-          shell: rm -rf /var/lib/docker/*  # noqa 302
-          when: not is_atomic | bool
-          tags:
-            - remove_docker
 
 
 - name: purge fetch directory
