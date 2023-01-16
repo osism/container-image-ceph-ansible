@@ -6,6 +6,7 @@
   roles:
     - ceph-defaults
     - ceph-facts
+    - ceph-infra
     - ceph-handler
     - ceph-container-common
     - ceph-config
