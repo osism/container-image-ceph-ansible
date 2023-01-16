@@ -1,0 +1,7 @@
+---
+- name: Apply role ceph-infra
+  hosts: ceph
+  become: true
+
+  roles:
+    - ceph-infra
