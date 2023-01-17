@@ -1,0 +1,5 @@
+---
+- name: Apply role ceph-validate
+  hosts: localhost
+  roles:
+    - ceph-validate
