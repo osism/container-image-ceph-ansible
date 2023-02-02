@@ -50,7 +50,6 @@ RUN apt-get update \
         python3-wheel \
         rsync \
         sshpass \
-        vim-tiny \
     && python3 -m pip install --no-cache-dir --upgrade 'pip==23.0' \
     && pip3 install --no-cache-dir -r /src/requirements.txt \
     && rm -rf /var/lib/apt/lists/*
