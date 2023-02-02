@@ -51,7 +51,7 @@ RUN apt-get update \
         rsync \
         sshpass \
         vim-tiny \
-    && python3 -m pip install --no-cache-dir --upgrade 'pip==22.3.1' \
+    && python3 -m pip install --no-cache-dir --upgrade 'pip==23.0' \
     && pip3 install --no-cache-dir -r /src/requirements.txt \
     && rm -rf /var/lib/apt/lists/*
 
