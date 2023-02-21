@@ -6,7 +6,9 @@
       jobs:
         - ansible-lint
         - yamllint
+        - flake8
     gate:
       jobs:
         - ansible-lint
         - yamllint
+        - flake8
