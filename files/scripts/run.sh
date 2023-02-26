@@ -3,6 +3,7 @@
 source /secrets.sh
 
 ENVIRONMENT=${ENVIRONMENT:-ceph}
+SUB=${SUB:-ceph}
 
 if [[ $# -lt 1 ]]; then
     echo usage: osism-$ENVIRONMENT SERVICE [...]
@@ -23,8 +24,8 @@ if [[ -e /ansible/ara.env ]]; then
 fi
 
 export ANSIBLE_CONFIG=$ENVIRONMENTS_DIRECTORY/ansible.cfg
-if [[ -e $ENVIRONMENTS_DIRECTORY/$ENVIRONMENT/ansible.cfg ]]; then
-    export ANSIBLE_CONFIG=$ENVIRONMENTS_DIRECTORY/$ENVIRONMENT/ansible.cfg
+if [[ -e $ENVIRONMENTS_DIRECTORY/$SUB/ansible.cfg ]]; then
+    export ANSIBLE_CONFIG=$ENVIRONMENTS_DIRECTORY/$SUB/ansible.cfg
 fi
 
 if [[ -w $ANSIBLE_INVENTORY ]]; then
@@ -36,7 +37,7 @@ if [[ -w $ANSIBLE_INVENTORY ]]; then
     rm /ansible/inventory/[0-9]*
 fi
 
-cd $ENVIRONMENTS_DIRECTORY/$ENVIRONMENT
+cd $ENVIRONMENTS_DIRECTORY/$SUB
 
 export IFS=","
 for service in $services; do
