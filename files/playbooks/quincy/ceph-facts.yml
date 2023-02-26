@@ -3,13 +3,15 @@
   hosts: ceph
   gather_facts: false
   tasks:
-    - ansible.builtin.setup:
+    - name: Gather facts for ceph hosts
+      ansible.builtin.setup:
 
 - name: Gather facts for ceph hosts (if using --limit)
   hosts: ceph
   gather_facts: false
   tasks:
-    - ansible.builtin.setup:
+    - name: Gather facts for ceph hosts (if using --limit)
+      ansible.builtin.setup:
       delegate_facts: true
       delegate_to: "{{ item }}"
       with_items: "{{ groups['ceph'] }}"
@@ -17,6 +19,7 @@
         - (play_hosts | length) != (groups['ceph'] | length)
 
 - name: Apply role ceph-facts
+  gather_facts: false
   hosts: ceph
   become: true
   roles:
