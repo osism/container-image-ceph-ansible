@@ -1,6 +1,6 @@
 ---
 - name: Apply role ceph-restapi
-  hosts: ceph-restapi
+  hosts: "{{ restapi_group_name|default('ceph-restapi') }}"
   become: true
   roles:
     - ceph-defaults

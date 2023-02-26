@@ -1,7 +1,7 @@
 ---
 - name: Apply role ceph-nfs
   gather_facts: false
-  hosts: ceph-nfs
+  hosts: "{{ nfs_group_name|default('ceph-nfs') }}"
   become: true
   roles:
     - ceph-defaults

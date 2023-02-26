@@ -1,7 +1,7 @@
 ---
 - name: Apply role ceph-mds
   gather_facts: false
-  hosts: ceph-mds
+  hosts: "{{ mds_group_name|default('ceph-mds') }}"
   become: true
   roles:
     - ceph-defaults

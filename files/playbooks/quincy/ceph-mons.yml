@@ -1,6 +1,6 @@
 ---
 - name: Apply role ceph-mon
-  hosts: ceph-mon
+  hosts: "{{ mon_group_name|default('ceph-mon') }}"
   become: true
 
   roles:

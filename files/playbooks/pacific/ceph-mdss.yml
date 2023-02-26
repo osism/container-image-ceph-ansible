@@ -1,6 +1,6 @@
 ---
 - name: Apply role ceph-mds
-  hosts: ceph-mds
+  hosts: "{{ mds_group_name|default('ceph-mds') }}"
   become: true
   roles:
     - ceph-defaults

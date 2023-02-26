@@ -1,7 +1,7 @@
 ---
 - name: Apply role ceph-rgw
   gather_facts: false
-  hosts: ceph-rgw
+  hosts: "{{ rgw_group_name|default('ceph-rgw') }}"
   become: true
   roles:
     - ceph-defaults

@@ -50,7 +50,7 @@
       when: tempfile.path is defined
 
 - name: Restart ceph manager services
-  hosts: ceph-mon
+  hosts: "{{ mon_group_name|default('ceph-mon') }}"
   gather_facts: false
   serial: 1
 

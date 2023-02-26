@@ -1,13 +1,13 @@
 ---
 - name: Run preparations
-  hosts: ceph
+  hosts: "{{ ceph_group_name|default('ceph') }}"
   become: true
   roles:
     - ceph-defaults
     - ceph-facts
 
 - name: Apply role ceph-osd
-  hosts: ceph-osd
+  hosts: "{{ osd_group_name|default('ceph-osd') }}"
   become: true
   roles:
     - ceph-defaults

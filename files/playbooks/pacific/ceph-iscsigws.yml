@@ -1,6 +1,6 @@
 ---
 - name: Apply role ceph-iscsigw
-  hosts: ceph-iscsigw
+  hosts: "{{ iscsi_gw_group_name|default('ceph-iscsigw') }}"
   become: true
   roles:
     - ceph-defaults

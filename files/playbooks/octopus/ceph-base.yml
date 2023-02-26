@@ -1,7 +1,7 @@
 ---
 - name: Deploy base environment
   gather_facts: false
-  hosts: ceph
+  hosts: "{{ ceph_group_name|default('ceph') }}"
   become: true
 
   roles:

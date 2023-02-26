@@ -1,7 +1,7 @@
 ---
 - name: Apply role ceph-mgr
   gather_facts: false
-  hosts: ceph-mgr
+  hosts: "{{ mgr_group_name|default('ceph-mgr') }}"
   become: true
   roles:
     - ceph-defaults
