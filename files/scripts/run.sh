@@ -2,7 +2,7 @@
 
 source /secrets.sh
 
-ENVIRONMENT=ceph
+ENVIRONMENT=${ENVIRONMENT:-ceph}
 
 if [[ $# -lt 1 ]]; then
     echo usage: osism-$ENVIRONMENT SERVICE [...]
