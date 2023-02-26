@@ -1,7 +1,7 @@
 ---
 - name: Apply role ceph-mon
   gather_facts: false
-  hosts: ceph-mon
+  hosts: "{{ mon_group_name|default('ceph-mon') }}"
   become: true
 
   roles:

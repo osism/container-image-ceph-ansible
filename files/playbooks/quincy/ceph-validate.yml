@@ -1,5 +1,5 @@
 ---
 - name: Apply role ceph-validate
-  hosts: ceph
+  hosts: "{{ ceph_group_name|default('ceph') }}"
   roles:
     - ceph-validate

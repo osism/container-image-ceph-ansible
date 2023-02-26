@@ -1,13 +1,13 @@
 ---
 - name: Gather facts for ceph hosts
-  hosts: ceph
+  hosts: "{{ ceph_group_name|default('ceph') }}"
   gather_facts: false
   tasks:
     - name: Gather facts for ceph hosts
       ansible.builtin.setup:
 
 - name: Gather facts for ceph hosts (if using --limit)
-  hosts: ceph
+  hosts: "{{ ceph_group_name|default('ceph') }}"
   gather_facts: false
   tasks:
     - name: Gather facts for ceph hosts (if using --limit)
@@ -20,7 +20,7 @@
 
 - name: Apply role ceph-facts
   gather_facts: false
-  hosts: ceph
+  hosts: "{{ ceph_group_name|default('ceph') }}"
   become: true
   roles:
     - ceph-defaults

@@ -1,6 +1,6 @@
 ---
 - name: Apply role ceph-client
-  hosts: ceph-client
+  hosts: "{{ client_group_name|default('ceph-client') }}"
   become: true
   roles:
     - ceph-defaults
