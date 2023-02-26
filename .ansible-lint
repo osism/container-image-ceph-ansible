@@ -4,7 +4,30 @@ exclude_paths:
 use_default_rules: true
 rulesdir:
   - ./.ansible-lint-rules/
+mock_roles:
+  - ceph-client
+  - ceph-config
+  - ceph-container-common
+  - ceph-crash
+  - ceph-dashboard
+  - ceph-defaults
+  - ceph-facts
+  - ceph-fetch-keys
+  - ceph-handler
+  - ceph-infra
+  - ceph-iscsi-gw
+  - ceph-mds
+  - ceph-mgr
+  - ceph-mon
+  - ceph-nfs
+  - ceph-osd
+  - ceph-rbd-mirror
+  - ceph-restapi
+  - ceph-rgw
+  - ceph-validate
+mock_modules:
+  - ceph_volume
 skip_list:
   - parser-error  # AnsibleParserError.
-  - var-spacing  # Variables should have spaces before and after: {{ var_name }}.
+  - var-spacing   # Variables should have spaces before and after: {{ var_name }}.
   - fqcn-builtins
