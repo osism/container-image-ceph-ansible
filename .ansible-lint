@@ -1,14 +1,19 @@
 ---
 exclude_paths:
   - .github
-  - files/playbooks/master/ceph-purge-storage-node.yml   # exclude playbooks imported from the ceph-ansible upstream
-  - files/playbooks/master/ceph-purge-cluster.yml        # exclude playbooks imported from the ceph-ansible upstream
-  - files/playbooks/octopus/ceph-purge-storage-node.yml  # exclude playbooks imported from the ceph-ansible upstream
-  - files/playbooks/octopus/ceph-purge-cluster.yml       # exclude playbooks imported from the ceph-ansible upstream
-  - files/playbooks/pacific/ceph-purge-storage-node.yml  # exclude playbooks imported from the ceph-ansible upstream
-  - files/playbooks/pacific/ceph-purge-cluster.yml       # exclude playbooks imported from the ceph-ansible upstream
-  - files/playbooks/quincy/ceph-purge-storage-node.yml   # exclude playbooks imported from the ceph-ansible upstream
-  - files/playbooks/quincy/ceph-purge-cluster.yml        # exclude playbooks imported from the ceph-ansible upstream
+  # exclude playbooks imported from the ceph-ansible upstream
+  - files/playbooks/master/ceph-bootstrap-dashboard.yml
+  - files/playbooks/master/ceph-purge-cluster.yml
+  - files/playbooks/master/ceph-purge-storage-node.yml
+  - files/playbooks/octopus/ceph-bootstrap-dashboard.yml
+  - files/playbooks/octopus/ceph-purge-cluster.yml
+  - files/playbooks/octopus/ceph-purge-storage-node.yml
+  - files/playbooks/pacific/ceph-bootstrap-dashboard.yml
+  - files/playbooks/pacific/ceph-purge-cluster.yml
+  - files/playbooks/pacific/ceph-purge-storage-node.yml
+  - files/playbooks/quincy/ceph-bootstrap-dashboard.yml
+  - files/playbooks/quincy/ceph-purge-cluster.yml
+  - files/playbooks/quincy/ceph-purge-storage-node.yml
 use_default_rules: true
 rulesdir:
   - ./.ansible-lint-rules/
