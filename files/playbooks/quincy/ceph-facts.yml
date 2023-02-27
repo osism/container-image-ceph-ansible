@@ -14,9 +14,9 @@
       ansible.builtin.setup:
       delegate_facts: true
       delegate_to: "{{ item }}"
-      with_items: "{{ groups['ceph'] }}"
+      with_items: "{{ groups[ceph_group_name|default('ceph')] }}"
       when:
-        - (play_hosts | length) != (groups['ceph'] | length)
+        - (play_hosts | length) != (groups[ceph_group_name|default('ceph')] | length)
 
 - name: Apply role ceph-facts
   gather_facts: false
