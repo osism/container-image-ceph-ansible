@@ -1,0 +1,55 @@
+---
+- name: Deploy ceph environment
+  hosts: "{{ ceph_group_name|default('ceph') }}"
+  become: true
+
+  tasks:
+    - name: Run ceph-defaults
+      ansible.builtin.include_role:
+        name: ceph-defaults
+
+    - name: Run ceph-facts
+      ansible.builtin.include_role:
+        name: ceph-facts
+
+    - name: Run ceph-infra
+      ansible.builtin.include_role:
+        name: ceph-infra
+
+    - name: Run ceph-handler
+      ansible.builtin.include_role:
+        name: ceph-handler
+
+    - name: Run ceph-container-common
+      ansible.builtin.include_role:
+        name: ceph-container-common
+
+    - name: Run ceph-config
+      ansible.builtin.include_role:
+        name: ceph-config
+
+    - name: Run ceph-mon
+      ansible.builtin.include_role:
+        name: ceph-mon
+
+    - name: Run ceph-mgr
+      ansible.builtin.include_role:
+        name: ceph-mgr
+
+    - name: Run ceph-osd
+      ansible.builtin.include_role:
+        name: ceph-osd
+
+    - name: Run ceph-crash
+      ansible.builtin.include_role:
+        name: ceph-crash
+
+    - name: Run ceph-mds
+      ansible.builtin.include_role:
+        name: ceph-mds
+      when: enable_ceph_mds|default(false)|bool
+
+    - name: Run ceph-rgw
+      ansible.builtin.include_role:
+        name: ceph-rgw
+      when: enable_ceph_rgw|default(false)|bool
