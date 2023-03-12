@@ -16,11 +16,6 @@ with open("/release/%s/base.yml" % VERSION, "rb") as fp:
 with open("/release/%s/ceph-%s.yml" % (VERSION, CEPH_VERSION), "rb") as fp:
     ceph_versions = yaml.load(fp, Loader=yaml.FullLoader)
 
-if CEPH_VERSION in ['quincy']:
-    ansible_package = "ansible-core"
-else:
-    ansible_package = "ansible"
-
 # prepare jinja2 environment
 
 loader = jinja2.FileSystemLoader(searchpath="/src/templates/")
@@ -30,8 +25,7 @@ environment = jinja2.Environment(loader=loader)
 
 template = environment.get_template("requirements.txt.j2")
 result = template.render({
-  'ansible_version': ceph_versions['ansible_version'],
-  'ansible_package': ansible_package,
+  'ansible_core_version': ceph_versions['ansible_core_version'],
   'osism_projects': versions['osism_projects']
 })
 with open("/requirements.txt", "w+") as fp:
