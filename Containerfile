@@ -176,7 +176,8 @@ RUN mkdir -p /tests \
     && cp -r /repository/tests/* /tests
 
 # copy ara configuration
-RUN python3 -m ara.setup.env > /ansible/ara.env
+COPY files/ara.env /ansible/ara.env
+RUN python3 -m ara.setup.env >> /ansible/ara.env
 
 # prepare list of playbooks
 RUN python3 /src/render-playbooks.py
