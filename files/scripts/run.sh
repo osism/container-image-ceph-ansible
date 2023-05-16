@@ -17,7 +17,7 @@ ANSIBLE_DIRECTORY=/ansible
 CONFIGURATION_DIRECTORY=/opt/configuration
 ENVIRONMENTS_DIRECTORY=$CONFIGURATION_DIRECTORY/environments
 
-export ANSIBLE_INVENTORY=$ANSIBLE_DIRECTORY/inventory
+export ANSIBLE_INVENTORY=$ANSIBLE_DIRECTORY/inventory/hosts.yml
 
 if [[ -e /ansible/ara.env ]]; then
     source /ansible/ara.env
