@@ -1,26 +1,26 @@
 ---
 - name: Gather facts for ceph hosts
-  hosts: "{{ ceph_group_name|default('ceph') }}"
+  hosts: "{{ ceph_group_name | default('ceph') }}"
   gather_facts: false
   tasks:
     - name: Gather facts for ceph hosts
       ansible.builtin.setup:
 
 - name: Gather facts for ceph hosts (if using --limit)
-  hosts: "{{ ceph_group_name|default('ceph') }}"
+  hosts: "{{ ceph_group_name | default('ceph') }}"
   gather_facts: false
   tasks:
     - name: Gather facts for ceph hosts (if using --limit)
       ansible.builtin.setup:
       delegate_facts: true
       delegate_to: "{{ item }}"
-      with_items: "{{ groups[ceph_group_name|default('ceph')] }}"
+      with_items: "{{ groups[ceph_group_name | default('ceph')] }}"
       when:
-        - (play_hosts | length) != (groups[ceph_group_name|default('ceph')] | length)
+        - (play_hosts | length) != (groups[ceph_group_name | default('ceph')] | length)
 
 - name: Apply role ceph-facts
   gather_facts: false
-  hosts: "{{ ceph_group_name|default('ceph') }}"
+  hosts: "{{ ceph_group_name | default('ceph') }}"
   become: true
   roles:
     - ceph-defaults
