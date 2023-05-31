@@ -16,6 +16,7 @@ shift
 ANSIBLE_DIRECTORY=/ansible
 CONFIGURATION_DIRECTORY=/opt/configuration
 ENVIRONMENTS_DIRECTORY=$CONFIGURATION_DIRECTORY/environments
+VAULT=${VAULT:-$ENVIRONMENTS_DIRECTORY/.vault_pass}
 
 export ANSIBLE_INVENTORY=$ANSIBLE_DIRECTORY/inventory/hosts.yml
 
@@ -42,7 +43,7 @@ cd $ENVIRONMENTS_DIRECTORY/$SUB
 export IFS=","
 for service in $services; do
   ansible-playbook \
-    --vault-password-file $ENVIRONMENTS_DIRECTORY/.vault_pass \
+    --vault-password-file $VAULT \
     -e @$ENVIRONMENTS_DIRECTORY/configuration.yml \
     -e @$ENVIRONMENTS_DIRECTORY/secrets.yml \
     -e @secrets.yml \
