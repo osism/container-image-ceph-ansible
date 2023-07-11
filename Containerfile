@@ -127,6 +127,7 @@ RUN ansible-galaxy role install -v -f -r /ansible/galaxy/requirements.yml -p /us
     && ln -s /usr/share/ansible/collections /ansible/collections
 
 # prepare project repository
+# hadolint ignore=DL3003
 RUN PROJECT_VERSION=$(grep "ceph_ansible_version:" /release/$VERSION/ceph-$CEPH_VERSION.yml | awk -F': ' '{ print $2 }') \
     && git clone -b $PROJECT_VERSION https://github.com/ceph/ceph-ansible /repository \
     && for patchfile in $(find /patches/$PROJECT_VERSION -name "*.patch"); do \
