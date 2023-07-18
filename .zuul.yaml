@@ -1,4 +1,74 @@
 ---
+- secret:
+    name: SECRET_CONTAINER_IMAGE_CEPH_ANSIBLE
+    data:
+      DOCKER_USERNAME: !encrypted/pkcs1-oaep
+        - JYDswL5G9I//wPXt1/oyJpQR5sqLDwWUOzv61SxS5a6dnojtY8H1Iizm4UmtirgdhenF/
+          RUGEuHQbHK8GzDrfOSF73mrPC+gt0C2S9MwfKXg3kvo4UBu149uSuLj3mYrkOsGzwxHcC
+          G3agzfqxDqYbwMILnRdwWGPNE2Igbjr3RtoIaK3WigeC05jzQhv3aB3f44tl4VTgk7QOq
+          2xQQjZKSpCeAL9X5oIr1O6NG/jyr4sWm3/R1d4xUDt8psWAsw/2Ws/wxQErzlw2TeQai4
+          yU0bK6RRVo3P32bn6vrRjUgjHch18PR+D5G3/Lp8KNXJzxskHz/agpwwXZ/poRY5ubqa0
+          CK56Mq/3N7dBu1kVVNKIdzHx8ZYhcnsGYBEONyJA3ttnE8FSZWC91sA6vnDybOG0JoI0K
+          Sn2v3xkT0+4X83Gi0KWubMlmX32tunpxYthFusRicBMHYiNkqoz6eQSjguyxcVyBw/Smm
+          0qMs0Mam4k9NqkUFiNwOD/DEfPqMBZooa3hDJAeyIV3RM52s1M2Nu+n3tclI6dCMy6KZq
+          BE7LqKMKsOz2YVPKXxl3KZ9/ZH57pzvHx5T64JzJ/84nN6DEJjoZXkTKD1TiHtzQdgdgi
+          Rb0IdDRosknMSUDaCJ5dAqmlienx6BnRVwjXarKomj29YhAzxuSviU4n5v3RMg=
+      DOCKER_PASSWORD: !encrypted/pkcs1-oaep
+        - XTAv0tc2ZOnAh0VSn3QyIS1kgq0ki+/+UxKKRhqK6YTdrfKVM6AmscwSb8gbZuChkwUDE
+          +vOWF9kyj0tewIxqc2l5BSydDltRULx0yAS9V5urwbqlJdrcgldQZDwgqOnMtC+SbO36T
+          JfUyxsFE5PMwqp8oDIX3q/1QVKUCSwsTBokro/NzCwOwDVMtcbsOgPjDuOL40ONaE5gSK
+          syjD44LGfMGZNwf+l3AQAZsi6szlpL7oBKLIO9y+xyjx6qiEb+bmlwIoo3vIQx3z3fRJo
+          pNrYcqZgXCIF18+QXqGUr6GFCN/eEGDbuQBQVtAOYwQCnW/xaRkgq/u7eCHR/wFxc/Gdm
+          xdGZtYSrnBJl14vyxJDb2d21zaMJlu1a4Da6BwM5mW21+HV35WxwIjVHbQ3+uDnNp5LBI
+          GSvYFv2L2weaNxpeMiSI7oDW5gxcdKNcMrmlAUZLPrvALFyu1MlsZCwklY4wTLrfPJhET
+          SyMhb2Yi+aXNJPoXU9l1j5al2paMYwQYm+LeAxYgNsTGCrZ0u4MhsgZlBfClwW8dghqGr
+          /JEiu/9PCmdjFUhALmjVDl25hI+7ifBrjtFfq+MvAmB84KIylub9STb4Jq7+B6+O6ENNl
+          /uzowymPS1ymbDCIG2bn3BLlCASrsNGA31LBMtEi+kWc+lHfoAu7Du4EzcL1tg=
+
+- job:
+    name: container-image-ceph-ansible-build
+    pre-run: playbooks/pre.yml
+    run: playbooks/build.yml
+    vars:
+      docker_namespace: osism
+      docker_registry: osism.harbor.regio.digital
+
+- job:
+    name: container-image-ceph-ansible-build-pacific
+    parent: container-image-ceph-ansible-build
+    vars:
+      version_ceph: pacific
+      push_image: false
+
+- job:
+    name: container-image-ceph-ansible-build-quincy
+    parent: container-image-ceph-ansible-build
+    vars:
+      version_ceph: quincy
+      push_image: false
+
+- job:
+    name: container-image-ceph-ansible-push-pacific
+    parent: container-image-ceph-ansible-build
+    vars:
+      version_ceph: pacific
+      push_image: true
+    secrets:
+      - name: secret
+        secret: SECRET_CONTAINER_IMAGE_CEPH_ANSIBLE
+        pass-to-parent: true
+
+- job:
+    name: container-image-ceph-ansible-push-quincy
+    parent: container-image-ceph-ansible-build
+    vars:
+      version_ceph: quincy
+      push_image: true
+    secrets:
+      - name: secret
+        secret: SECRET_CONTAINER_IMAGE_CEPH_ANSIBLE
+        pass-to-parent: true
+
 - project:
     merge-mode: squash-merge
     default-branch: main
@@ -8,6 +78,8 @@
         - flake8
         - hadolint
         - yamllint
+        - container-image-ceph-ansible-build-pacific
+        - container-image-ceph-ansible-build-quincy
     gate:
       jobs:
         - ansible-lint
@@ -20,3 +92,11 @@
         - flake8
         - hadolint
         - yamllint
+        - container-image-ceph-ansible-push-pacific
+        - container-image-ceph-ansible-push-quincy
+    post:
+      jobs:
+        - container-image-ceph-ansible-push-pacific:
+            branches: main
+        - container-image-ceph-ansible-push-quincy:
+            branches: main

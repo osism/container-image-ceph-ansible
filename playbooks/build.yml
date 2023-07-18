@@ -1,0 +1,103 @@
+---
+- name: Build ceph-ansible image
+  hosts: all
+
+  environment:
+    ceph_version: "{{ version_ceph }}"
+    is_release: "False"
+    registry: "{{ docker_registry }}"
+    repository: "{{ docker_namespace }}/ceph-ansible"
+    version: latest
+
+  tasks:
+    - name: Log into registry
+      community.docker.docker_login:
+        registry_url: "{{ docker_registry }}"
+        username: "{{ secret.DOCKER_USERNAME }}"
+        password: "{{ secret.DOCKER_PASSWORD }}"
+      when: push_image | bool
+
+    - name: Run build script
+      ansible.builtin.shell:
+        executable: /bin/bash
+        chdir: "{{ zuul.project.src_dir }}"
+        cmd: |
+          set -e
+          set -o pipefail
+          set -x
+
+          created=$(date --rfc-3339=ns)
+          revision=$(git rev-parse --short HEAD)
+
+          # NOTE: For builds for a specific release, the Ceph version is taken from the release repository.
+          if [[ $version != "latest" ]]; then
+              filename=$(curl -L https://raw.githubusercontent.com/osism/release/master/$version/ceph.yml)
+              ceph_version=$(curl -L https://raw.githubusercontent.com/osism/release/master/$version/$filename | grep "ceph_version:" | awk -F': ' '{ print $2 }')
+          fi
+
+          . defaults/${ceph_version}.sh
+
+          if [[ -n $registry ]]; then
+              repository="$registry/$repository"
+          fi
+
+          docker buildx build \
+              --build-arg "IS_RELEASE=$is_release" \
+              --build-arg "CEPH_VERSION=$ceph_version" \
+              --build-arg "VERSION=$version" \
+              --label "org.opencontainers.image.created=$created" \
+              --label "org.opencontainers.image.documentation=https://docs.osism.tech" \
+              --label "org.opencontainers.image.licenses=ASL 2.0" \
+              --label "org.opencontainers.image.revision=$revision" \
+              --label "org.opencontainers.image.source=https://github.com/osism/container-image-ceph-ansible" \
+              --label "org.opencontainers.image.title=ceph-ansible" \
+              --label "org.opencontainers.image.url=https://www.osism.tech" \
+              --label "org.opencontainers.image.vendor=OSISM GmbH" \
+              --label "org.opencontainers.image.version=$version" \
+              --label "de.osism.release.ceph=$ceph_version" \
+              --load \
+              --tag "$revision" \
+              .  # <-- there is a dot
+      changed_when: true
+
+    - name: Run push script
+      ansible.builtin.shell:
+        executable: /bin/bash
+        chdir: "{{ zuul.project.src_dir }}"
+        cmd: |
+          set -e
+          set -o pipefail
+          set -x
+
+          revision=$(git rev-parse --short HEAD)
+
+          # NOTE: For builds for a specific release, the Ceph version is taken from the release repository.
+          if [[ $version != "latest" ]]; then
+              filename=$(curl -L https://raw.githubusercontent.com/osism/release/main/$version/ceph.yml)
+              ceph_version=$(curl -L https://raw.githubusercontent.com/osism/release/main/$version/$filename | grep "ceph_version:" | awk -F': ' '{ print $2 }')
+          fi
+
+          . defaults/${ceph_version}.sh
+
+          if [[ -n $docker_registry ]]; then
+              repository="$docker_registry/$repository"
+          fi
+
+          if [[ $ceph_version == "master" ]]; then
+              tag=$repository:latest
+
+              docker tag "$revision" "$tag"
+              docker push "$tag"
+          else
+              if [[ $version == "latest" ]]; then
+                  tag=$repository:$ceph_version
+              else
+                  tag=$repository:$version
+              fi
+
+              docker tag "$revision" "$tag"
+              docker push "$tag"
+          fi
+      when: push_image | bool
+      changed_when: true
+      no_log: true
