@@ -35,6 +35,7 @@ RUN echo '[ ! -z "$TERM" -a -r /etc/motd ] && cat /etc/motd' >> /etc/bash.bashrc
 # upgrade/install required packages
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
+        build-essential \
         dumb-init \
         git \
         jq \
@@ -169,15 +170,15 @@ COPY files/playbooks/$CEPH_VERSION/ceph-purge-cluster.yml /ansible/ceph-purge-cl
 
 # NOTE(berendt): this is a workaround for ceph-ansible < 3.0.0
 RUN mkdir -p \
-        /ansible/roles/ceph-config \
-        /ansible/roles/ceph-defaults
+  /ansible/roles/ceph-config \
+  /ansible/roles/ceph-defaults
 
 # hadolint ignore=DL3059
 RUN mkdir -p /tests \
     && cp -r /repository/tests/* /tests
 
 # always enable the json_stats calback plugin
-RUN ln -s /ansible/plugins/callback/json_stats.py ./usr/local/lib/python3.8/dist-packages/ansible/plugins/callback
+RUN ln -s /ansible/plugins/callback/json_stats.py ./usr/local/lib/python3.10/dist-packages/ansible/plugins/callback
 
 # copy ara configuration
 COPY files/ara.env /ansible/ara.env
@@ -192,6 +193,7 @@ RUN chown -R dragon: /ansible /share /interface
 # cleanup
 RUN apt-get clean \
     && apt-get remove -y  \
+      build-essential \
       git \
       libffi-dev \
       libssh-dev \

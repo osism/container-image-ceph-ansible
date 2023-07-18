@@ -38,11 +38,12 @@ mock_roles:
   - ceph-restapi
   - ceph-rgw
   - ceph-validate
+  - ensure-docker
 mock_modules:
   - ceph_volume
 skip_list:
-  - parser-error  # AnsibleParserError.
   - fqcn-builtins
+  - parser-error  # AnsibleParserError.
 # DO NOT DELETE THE WARNLIST! It is required for our custom rules!
 # If this isn't there our custom rules will only through a warning and wont generate a failure!:
 warn_list:
