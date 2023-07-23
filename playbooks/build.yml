@@ -80,8 +80,8 @@
 
           . defaults/${ceph_version}.sh
 
-          if [[ -n $docker_registry ]]; then
-              repository="$docker_registry/$repository"
+          if [[ -n $registry ]]; then
+              repository="$registry/$repository"
           fi
 
           if [[ $ceph_version == "master" ]]; then
