@@ -16,6 +16,7 @@
         username: "{{ secret.DOCKER_USERNAME }}"
         password: "{{ secret.DOCKER_PASSWORD }}"
       when: push_image | bool
+      no_log: true
 
     - name: Run build script
       ansible.builtin.shell:
@@ -100,4 +101,3 @@
           fi
       when: push_image | bool
       changed_when: true
-      no_log: true
