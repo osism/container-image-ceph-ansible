@@ -3,7 +3,7 @@
   hosts: all
 
   environment:
-    ceph_version: "{{ version_ceph }}"
+    ceph_version: "{{ version_ceph | default('master') }}"
     registry: "{{ docker_registry }}"
     repository: "{{ docker_namespace }}/ceph-ansible"
     version: "{{ zuul['tag'] | default('latest') }}"
