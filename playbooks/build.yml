@@ -6,7 +6,7 @@
     ceph_version: "{{ version_ceph }}"
     registry: "{{ docker_registry }}"
     repository: "{{ docker_namespace }}/ceph-ansible"
-    version: "{{ zuul['tag'] | default('latest') }}"
+    version: "{{ zuul['tag'] | default(version_ceph) }}"
 
   tasks:
     - name: Log into registry
