@@ -4,10 +4,9 @@
 
   environment:
     ceph_version: "{{ version_ceph }}"
-    is_release: "False"
     registry: "{{ docker_registry }}"
     repository: "{{ docker_namespace }}/ceph-ansible"
-    version: latest
+    version: "{{ zuul['tag'] | default('latest') }}"
 
   tasks:
     - name: Log into registry
@@ -43,7 +42,6 @@
           fi
 
           docker buildx build \
-              --build-arg "IS_RELEASE=$is_release" \
               --build-arg "CEPH_VERSION=$ceph_version" \
               --build-arg "VERSION=$version" \
               --label "org.opencontainers.image.created=$created" \
