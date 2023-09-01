@@ -48,36 +48,26 @@
       push_image: false
 
 - job:
-    name: container-image-ceph-ansible-push-pacific
+    name: container-image-ceph-ansible-push
     parent: container-image-ceph-ansible-build
     vars:
-      version_ceph: pacific
       push_image: true
     secrets:
       - name: secret
         secret: SECRET_CONTAINER_IMAGE_CEPH_ANSIBLE
         pass-to-parent: true
+
+- job:
+    name: container-image-ceph-ansible-push-pacific
+    parent: container-image-ceph-ansible-push
+    vars:
+      version_ceph: pacific
 
 - job:
     name: container-image-ceph-ansible-push-quincy
-    parent: container-image-ceph-ansible-build
+    parent: container-image-ceph-ansible-push
     vars:
       version_ceph: quincy
-      push_image: true
-    secrets:
-      - name: secret
-        secret: SECRET_CONTAINER_IMAGE_CEPH_ANSIBLE
-        pass-to-parent: true
-
-- job:
-    name: container-image-ceph-ansible-release
-    parent: container-image-ceph-ansible-build
-    vars:
-      push_image: true
-    secrets:
-      - name: secret
-        secret: SECRET_CONTAINER_IMAGE_CEPH_ANSIBLE
-        pass-to-parent: true
 
 - project:
     merge-mode: squash-merge
@@ -112,4 +102,4 @@
             branches: main
     tag:
       jobs:
-        - container-image-ceph-ansible-release
+        - container-image-ceph-ansible-push
