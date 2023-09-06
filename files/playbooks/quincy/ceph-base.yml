@@ -1,5 +1,5 @@
 ---
-- name: Deploy base environment
+- name: Prepare deployment of base environment
   hosts: "{{ ceph_group_name|default('ceph') }}"
   become: true
 
@@ -10,7 +10,39 @@
     - ceph-handler
     - ceph-container-common
     - ceph-config
+
+- name: Deploy base environment - mon services
+  hosts: "{{ mon_group_name|default('ceph-mon') }}"
+  become: true
+
+  roles:
+    - ceph-defaults
+    - ceph-facts
     - ceph-mon
+
+- name: Deploy base environment - mgr services
+  hosts: "{{ mgr_group_name|default('ceph-mgr') }}"
+  become: true
+
+  roles:
+    - ceph-defaults
+    - ceph-facts
     - ceph-mgr
+
+- name: Deploy base environment - osd services
+  hosts: "{{ osd_group_name|default('ceph-osd') }}"
+  become: true
+
+  roles:
+    - ceph-defaults
+    - ceph-facts
     - ceph-osd
+
+- name: Deploy base environment - crash services
+  hosts: "{{ crash_group_name|default('ceph-crash') }}"
+  become: true
+
+  roles:
+    - ceph-defaults
+    - ceph-facts
     - ceph-crash
