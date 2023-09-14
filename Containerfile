@@ -1,8 +1,7 @@
-ARG UBUNTU_VERSION=22.04
-FROM ubuntu:${UBUNTU_VERSION}
+FROM python:3.11-slim
 
 ARG VERSION
-ARG CEPH_VERSION=nautilus
+ARG CEPH_VERSION=quincy
 
 ARG MITOGEN_VERSION=0.3.4
 
@@ -172,7 +171,7 @@ mkdir -p /tests
 cp -r /repository/tests/* /tests
 
 # always enable the json_stats calback plugin
-ln -s /ansible/plugins/callback/json_stats.py ./usr/local/lib/python3.10/dist-packages/ansible/plugins/callback
+ln -s /ansible/plugins/callback/json_stats.py /usr/local/lib/python3.11/site-packages/ansible/plugins/callback
 
 # copy ara configuration
 python3 -m ara.setup.env >> /ansible/ara.env
