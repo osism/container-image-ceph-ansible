@@ -48,6 +48,7 @@ apt-get install -y --no-install-recommends \
   build-essential \
   dumb-init \
   git \
+  iputils-ping \
   jq \
   libffi-dev \
   libssh-dev \
@@ -55,6 +56,7 @@ apt-get install -y --no-install-recommends \
   libyaml-dev \
   openssh-client \
   patch \
+  procps \
   python3-dev \
   python3-pip \
   python3-setuptools \
