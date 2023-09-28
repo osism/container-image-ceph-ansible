@@ -3,8 +3,6 @@ FROM python:3.11-slim
 ARG VERSION
 ARG CEPH_VERSION=quincy
 
-ARG MITOGEN_VERSION=0.3.4
-
 ARG USER_ID=45000
 ARG GROUP_ID=45000
 ARG GROUP_ID_DOCKER=999
@@ -31,8 +29,6 @@ COPY files/requirements.yml /ansible/galaxy/requirements.yml
 COPY files/ara.env /ansible/ara.env
 
 COPY files/src /src
-
-ADD https://github.com/mitogen-hq/mitogen/archive/refs/tags/v$MITOGEN_VERSION.tar.gz /mitogen.tar.gz
 
 # hadolint ignore=DL3003
 RUN <<EOF
@@ -113,8 +109,7 @@ mkdir -p \
   /ansible/filter_plugins \
   /ansible/library \
   /ansible/roles \
-  /ansible/tasks \
-  /usr/share/ansible/plugins/mitogen
+  /ansible/tasks
 
 # volumes
 mkdir -p \
@@ -138,13 +133,6 @@ for patchfile in $(find /patches/$PROJECT_VERSION -name "*.patch"); do
   ( cd /repository && patch --forward --batch -p1 --dry-run ) < $patchfile || exit 1;
   ( cd /repository && patch --forward --batch -p1 ) < $patchfile;
 done
-
-# install mitogen ansible plugin
-
-mkdir -p /usr/share/ansible/plugins/mitogen
-tar xzf /mitogen.tar.gz --strip-components=1 -C /usr/share/ansible/plugins/mitogen
-rm -rf /usr/share/ansible/plugins/mitogen/{tests,docs,.ci,.lgtm.yml,.travis.yml}
-rm /mitogen.tar.gz
 
 # project specific instructions
 if [ -e /repository/plugins/actions ]; then cp /repository/plugins/actions/* /ansible/action_plugins; fi
