@@ -1,6 +1,7 @@
 ---
 exclude_paths:
   - .github
+  - files/playbooks/quincy/ceph-pools.yml
   # exclude playbooks imported from the ceph-ansible upstream
   - files/playbooks/master/ceph-bootstrap-dashboard.yml
   - files/playbooks/master/ceph-purge-cluster.yml
