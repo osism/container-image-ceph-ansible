@@ -1,0 +1,15 @@
+---
+- name: Create ceph pools
+  hosts: "{{ osd_group_name|default('ceph-osd') }}"
+  become: true
+
+  roles:
+    - ceph-defaults
+    - ceph-facts
+
+  tasks:
+    - name: Include tasks from the ceph-osd role
+      ansible.builtin.include_tasks:
+        file: roles/ceph-osd/tasks/openstack_config.yml
+      when:
+        - inventory_hostname == groups[osd_group_name] | last

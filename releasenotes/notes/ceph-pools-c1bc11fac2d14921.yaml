@@ -1,0 +1,5 @@
+---
+features:
+  - |
+    With the `ceph-pools` play it is possible to manage the ceph pools independent
+    of the `ceph-osds` play.
