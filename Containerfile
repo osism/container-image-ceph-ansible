@@ -1,4 +1,4 @@
-FROM python:3.11-slim
+FROM python:3.11-slim as builder
 
 ARG VERSION
 ARG CEPH_VERSION=quincy
@@ -195,9 +195,13 @@ rm -rf \
   /var/tmp/*
 EOF
 
-VOLUME ["/ansible/secrets", "/ansible/logs", "/ansible/cache", "/share", "/interface"]
+USER dragon
 
+FROM python:3.11-slim
+
+COPY --link --from=builder / /
+
+VOLUME ["/ansible/secrets", "/ansible/logs", "/ansible/cache", "/share", "/interface"]
 USER dragon
 WORKDIR /ansible
-
 ENTRYPOINT ["/entrypoint.sh"]
