@@ -5,7 +5,7 @@ import yaml
 
 # get environment parameters
 
-CEPH_VERSION = os.environ.get("CEPH_VERSION", "quincy")
+CEPH_VERSION = os.environ.get("CEPH_VERSION", "pacific")
 VERSION = os.environ.get("VERSION", "latest")
 
 # load versions files from release repository

@@ -34,11 +34,29 @@
       docker_registry: osism.harbor.regio.digital
 
 - job:
+    name: container-image-ceph-ansible-build-pacific
+    parent: container-image-ceph-ansible-build
+    vars:
+      version_ceph: pacific
+      push_image: false
+
+- job:
     name: container-image-ceph-ansible-build-quincy
     parent: container-image-ceph-ansible-build
     vars:
       version_ceph: quincy
       push_image: false
+
+- job:
+    name: container-image-ceph-ansible-push-pacific
+    parent: container-image-ceph-ansible-build
+    vars:
+      version_ceph: pacific
+      push_image: true
+    secrets:
+      - name: secret
+        secret: SECRET_CONTAINER_IMAGE_CEPH_ANSIBLE
+        pass-to-parent: true
 
 - job:
     name: container-image-ceph-ansible-push-quincy
@@ -70,6 +88,7 @@
         - flake8
         - hadolint
         - yamllint
+        - container-image-ceph-ansible-build-pacific
         - container-image-ceph-ansible-build-quincy
     gate:
       jobs:
@@ -83,9 +102,12 @@
         - flake8
         - hadolint
         - yamllint
+        - container-image-ceph-ansible-push-pacific
         - container-image-ceph-ansible-push-quincy
     post:
       jobs:
+        - container-image-ceph-ansible-push-pacific:
+            branches: main
         - container-image-ceph-ansible-push-quincy:
             branches: main
     tag:

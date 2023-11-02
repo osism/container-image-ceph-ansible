@@ -1,0 +1,16 @@
+---
+- name: Deploy base environment
+  hosts: "{{ ceph_group_name|default('ceph') }}"
+  become: true
+
+  roles:
+    - ceph-defaults
+    - ceph-facts
+    - ceph-infra
+    - ceph-handler
+    - ceph-container-common
+    - ceph-config
+    - ceph-mon
+    - ceph-mgr
+    - ceph-osd
+    - ceph-crash
