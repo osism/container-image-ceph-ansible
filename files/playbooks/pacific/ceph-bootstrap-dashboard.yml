@@ -4,9 +4,10 @@
   gather_facts: false
 
   vars:
-    ceph_dashboard_username: admin
-    ceph_dashboard_port: 7000
     ceph_dashboard_addr: 0.0.0.0
+    ceph_dashboard_password: password
+    ceph_dashboard_port: 7000
+    ceph_dashboard_username: admin
 
   tasks:
     # NOTE: disable and re-enable the dashboard to trigger a restart of the dashboard
