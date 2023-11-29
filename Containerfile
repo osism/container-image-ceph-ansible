@@ -160,9 +160,6 @@ mkdir -p \
 mkdir -p /tests
 cp -r /repository/tests/* /tests
 
-# always enable the json_stats calback plugin
-ln -s /ansible/plugins/callback/json_stats.py /usr/local/lib/python3.11/site-packages/ansible/plugins/callback
-
 # copy ara configuration
 python3 -m ara.setup.env >> /ansible/ara.env
 
