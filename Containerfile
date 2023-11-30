@@ -160,9 +160,6 @@ mkdir -p \
 mkdir -p /tests
 cp -r /repository/tests/* /tests
 
-# copy ara configuration
-python3 -m ara.setup.env >> /ansible/ara.env
-
 # prepare list of playbooks
 python3 /src/render-playbooks.py
 
