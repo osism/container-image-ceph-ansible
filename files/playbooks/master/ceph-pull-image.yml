@@ -1,0 +1,9 @@
+---
+- name: Pull container image
+  hosts: "{{ ceph_group_name|default('ceph') }}"
+
+  tasks:
+    - name: Pull container image
+      community.docker.docker_image:
+        name: "{{ ceph_docker_registry }}/{{ ceph_docker_image }}:{{ ceph_image_version }}"
+        source: pull
