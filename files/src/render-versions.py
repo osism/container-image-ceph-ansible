@@ -23,25 +23,21 @@ environment = jinja2.Environment(loader=loader)
 template = environment.get_template("versions.yml.j2")
 
 if VERSION == "latest":
-    result = template.render(
-        {
-            "ceph_ansible_version": CEPH_VERSION,
-            "ceph_image_version": CEPH_VERSION,
-            "cephclient_version": CEPH_VERSION,
-        }
-    )
+    result = template.render({
+      'ceph_ansible_version': CEPH_VERSION,
+      'ceph_image_version': CEPH_VERSION,
+      'cephclient_version': CEPH_VERSION
+    })
 else:
     with open("/release/%s/ceph.yml" % VERSION, "rb") as fp:
         versions_ceph = yaml.load(fp, Loader=yaml.FullLoader)
 
-    result = template.render(
-        {
-            "ceph_ansible_version": versions["manager_version"],
-            "ceph_image_version": versions_ceph["docker_images"]["ceph"],
-            "ceph_version": versions_ceph["ceph_version"],
-            "cephclient_version": versions_ceph["docker_images"]["cephclient"],
-        }
-    )
+    result = template.render({
+      'ceph_ansible_version': versions['manager_version'],
+      'ceph_image_version': versions_ceph['docker_images']['ceph'],
+      'ceph_version': versions_ceph['ceph_version'],
+      'cephclient_version': versions_ceph['docker_images']['cephclient']
+    })
 
 with open("/ansible/group_vars/all/versions.yml", "w+") as fp:
     fp.write(result)
@@ -49,6 +45,8 @@ with open("/ansible/group_vars/all/versions.yml", "w+") as fp:
 # render motd
 
 template = environment.get_template("motd.j2")
-result = template.render({"manager_version": versions["manager_version"]})
+result = template.render({
+  'manager_version': versions['manager_version']
+})
 with open("/etc/motd", "w+") as fp:
     fp.write(result)
