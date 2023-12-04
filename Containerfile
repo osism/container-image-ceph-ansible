@@ -15,7 +15,6 @@ USER root
 COPY patches /patches
 
 COPY files/library /ansible/library
-COPY files/plugins /ansible/plugins
 COPY files/tasks /ansible/tasks
 
 COPY files/playbooks/$CEPH_VERSION/* /ansible/
