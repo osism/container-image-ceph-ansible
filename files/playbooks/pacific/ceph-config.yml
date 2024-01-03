@@ -1,9 +1,0 @@
----
-- name: Apply role ceph-config
-  hosts: "{{ ceph_group_name|default('ceph') }}"
-  become: true
-  roles:
-    - ceph-defaults
-    - ceph-facts
-    - ceph-handler
-    - ceph-config
