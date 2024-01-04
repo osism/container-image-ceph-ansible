@@ -17,3 +17,5 @@ collections:
     version: '>=2.5.0'
   - name: community.general
   - name: ansible.posix
+  - name: osism.commons
+    source: https://galaxy.ansible.com
