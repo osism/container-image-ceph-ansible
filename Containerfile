@@ -1,4 +1,4 @@
-FROM python:3.11-slim as builder
+FROM python:3.11-slim-bookworm as builder
 
 ARG VERSION
 ARG CEPH_VERSION=quincy
@@ -193,7 +193,7 @@ EOF
 
 USER dragon
 
-FROM python:3.11-slim
+FROM python:3.11-slim-bookworm
 
 COPY --link --from=builder / /
 
