@@ -1,7 +1,0 @@
----
-- name: Apply role ceph-infra
-  hosts: "{{ ceph_group_name|default('ceph') }}"
-  become: true
-
-  roles:
-    - ceph-infra
