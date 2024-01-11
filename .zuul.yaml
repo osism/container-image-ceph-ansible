@@ -86,6 +86,8 @@
         - hadolint
         - python-black
         - yamllint
+    periodic-midnight:
+      jobs:
         - container-image-ceph-ansible-push-quincy
     post:
       jobs:
