@@ -25,6 +25,10 @@
           /JEiu/9PCmdjFUhALmjVDl25hI+7ifBrjtFfq+MvAmB84KIylub9STb4Jq7+B6+O6ENNl
           /uzowymPS1ymbDCIG2bn3BLlCASrsNGA31LBMtEi+kWc+lHfoAu7Du4EzcL1tg=
 
+- semaphore:
+    name: semaphore-container-image-ceph-ansible-push-quincy
+    max: 1
+
 - job:
     name: container-image-ceph-ansible-build
     pre-run: playbooks/pre.yml
@@ -43,6 +47,8 @@
 - job:
     name: container-image-ceph-ansible-push-quincy
     parent: container-image-ceph-ansible-build
+    semaphores:
+      - name: semaphore-container-image-ceph-ansible-push-quincy
     vars:
       version_ceph: quincy
       push_image: true
