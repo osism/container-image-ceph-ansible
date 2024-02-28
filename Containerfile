@@ -18,6 +18,7 @@ COPY files/library /ansible/library
 COPY files/tasks /ansible/tasks
 
 COPY files/playbooks/$CEPH_VERSION/* /ansible/
+COPY files/playbooks/$CEPH_VERSION/templates/* /ansible/templates/
 COPY files/playbooks/$CEPH_VERSION/ceph-purge-storage-node.yml /ceph-purge-storage-node.yml
 COPY files/playbooks/$CEPH_VERSION/ceph-purge-cluster.yml /ceph-purge-cluster.yml
 
