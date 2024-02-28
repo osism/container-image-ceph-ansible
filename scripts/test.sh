@@ -18,7 +18,7 @@ function deploy() {
 # set default values
 
 DOCKER_REGISTRY=${DOCKER_REGISTRY:-quay.io}
-CEPH_VERSION=${CEPH_VERSION:-master}
+CEPH_VERSION=${CEPH_VERSION:-quincu}
 REPOSITORY=${REPOSITORY:-osism/ceph-ansible}
 VERSION=${VERSION:-latest}
 
