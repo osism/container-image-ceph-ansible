@@ -3,7 +3,7 @@
   hosts: all
 
   environment:
-    ceph_version: "{{ version_ceph | default('master') }}"
+    ceph_version: "{{ version_ceph | default('quincy') }}"
     registry: "{{ docker_registry }}"
     repository: "{{ docker_namespace }}/ceph-ansible"
     version: "{{ zuul['tag'] | default('latest') }}"
@@ -31,8 +31,8 @@
 
           # NOTE: For builds for a specific release, the Ceph version is taken from the release repository.
           if [[ $version != "latest" ]]; then
-              filename=$(curl -L https://raw.githubusercontent.com/osism/release/master/$version/ceph.yml)
-              ceph_version=$(curl -L https://raw.githubusercontent.com/osism/release/master/$version/$filename | grep "ceph_version:" | awk -F': ' '{ print $2 }')
+              filename=$(curl -L https://raw.githubusercontent.com/osism/release/main/$version/ceph.yml)
+              ceph_version=$(curl -L https://raw.githubusercontent.com/osism/release/main/$version/$filename | grep "ceph_version:" | awk -F': ' '{ print $2 }')
           fi
 
           . defaults/${ceph_version}.sh
@@ -82,20 +82,13 @@
               repository="$registry/$repository"
           fi
 
-          if [[ $ceph_version == "master" ]]; then
-              tag=$repository:latest
-
-              docker tag "$revision" "$tag"
-              docker push "$tag"
+          if [[ $version == "latest" ]]; then
+              tag=$repository:$ceph_version
           else
-              if [[ $version == "latest" ]]; then
-                  tag=$repository:$ceph_version
-              else
-                  tag=$repository:$version
-              fi
-
-              docker tag "$revision" "$tag"
-              docker push "$tag"
+              tag=$repository:$version
           fi
+
+          docker tag "$revision" "$tag"
+          docker push "$tag"
       when: push_image | bool
       changed_when: true
