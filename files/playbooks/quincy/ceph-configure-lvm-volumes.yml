@@ -208,8 +208,8 @@
           with_dict: "{{ ceph_osd_devices }}"
           when:
             - item.key in block_devices
-            - item.value.db_pv is defined
-            - item.value.wal_pv is not defined
+            - item.value.db_pv is not defined
+            - item.value.wal_pv is defined
 
         - name: Generate lvm_volumes structure (block + db + wal)
           ansible.builtin.set_fact:
