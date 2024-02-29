@@ -170,7 +170,7 @@
                   "db": "osd-db-" + item.value.osd_lvm_uuid,
                   "db_vg": (ceph_db_devices[item.value.db_pv].vg_name
                            if item.value.db_pv in ceph_db_devices
-                           else ceph_db_wal_devices[item.value.db_pv]).vg_name
+                           else ceph_db_wal_devices[item.value.db_pv].vg_name)
                 }
                 ]
               }}
