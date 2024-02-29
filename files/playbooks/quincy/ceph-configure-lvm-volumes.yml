@@ -106,9 +106,14 @@
 
     - name: Ceph configure LVM
       block:  # noqa: osism-fqcn
-        - name: Get block devices
+        - name: Get initial list of available block devices
           ansible.builtin.set_fact:
-            block_devices: "{{ hostvars[inventory_hostname].ansible_devices }}"
+            block_devices: "{{ hostvars[inventory_hostname].ansible_devices.keys() | list }}"
+
+        - name: Add known links to the list of available block devices
+          ansible.builtin.set_fact:
+            block_devices: "{{ block_devices + hostvars[inventory_hostname].ansible_devices[item]['links']['ids'] | default([]) }}"
+          loop: "{{ hostvars[inventory_hostname].ansible_devices.keys() | list }}"
 
         - name: Set UUIDs for OSD VGs/LVs
           ansible.builtin.set_fact:
