@@ -140,6 +140,16 @@
             _lvm_volumes_block_wal: []
             _lvm_volumes_block_db_wal: []
 
+        - name: Set ceph_db_devices if not defined
+          ansible.builtin.set_fact:
+            ceph_db_devices: {}
+          when: ceph_db_devices is not defined
+
+        - name: Set ceph_wal_devices if not defined
+          ansible.builtin.set_fact:
+            ceph_wal_devices: {}
+          when: ceph_wal_devices is not defined
+
         - name: Generate lvm_volumes structure (block only)
           ansible.builtin.set_fact:
             _lvm_volumes_block: >-
