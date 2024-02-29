@@ -20,10 +20,13 @@
 
     - name: Ceph create LVM devices
       block:  # noqa: osism-fqcn
-        - name: Get block devices present on host
+        - name: Get initial list of available block devices
           ansible.builtin.set_fact:
-            block_devices:
-              "{{ hostvars[inventory_hostname].ansible_devices }}"
+            block_devices: "{{ hostvars[inventory_hostname].ansible_devices }}"
+
+        - name: Add known links to the list of available block devices
+          ansible.builtin.include_tasks: _add-device-links.yml
+          loop: "{{ hostvars[inventory_hostname].ansible_devices.keys() | list }}"
 
         # Can only create VGs when PV is known, so it MUST be present
         # in ceph_osd_devices and MUST NOT have holders or partitions
