@@ -23,11 +23,10 @@
       block:  # noqa: osism-fqcn
         - name: Get initial list of available block devices
           ansible.builtin.set_fact:
-            block_devices: "{{ hostvars[inventory_hostname].ansible_devices.keys() | list }}"
+            block_devices: "{{ hostvars[inventory_hostname].ansible_devices }}"
 
         - name: Add known links to the list of available block devices
-          ansible.builtin.set_fact:
-            block_devices: "{{ block_devices + hostvars[inventory_hostname].ansible_devices[item]['links']['ids'] | default([]) }}"
+          ansible.builtin.include_tasks: _add-device-links.yml
           loop: "{{ hostvars[inventory_hostname].ansible_devices.keys() | list }}"
 
         - name: Set UUIDs for OSD VGs/LVs
