@@ -51,7 +51,7 @@
             - item.value.osd_lvm_uuid is defined
             - item.key in block_devices
             - block_devices[item.key].holders|length == 0
-            - block_devices[item.key].partitions|length == 0
+            - block_devices[item.key].partitions|default([])|length == 0
 
         # Create block VGs
         - name: Create block VGs
@@ -87,7 +87,7 @@
             - ceph_db_devices is defined
             - item.value.vg_name is defined
             - block_devices[item.key].holders|length == 0
-            - block_devices[item.key].partitions|length == 0
+            - block_devices[item.key].partitions|default([])|length == 0
 
         - name: Create WAL VGs
           become: true
@@ -100,7 +100,7 @@
             - ceph_wal_devices is defined
             - item.value.vg_name is defined
             - block_devices[item.key].holders|length == 0
-            - block_devices[item.key].partitions|length == 0
+            - block_devices[item.key].partitions|default([])|length == 0
 
         - name: Create DB+WAL VGs
           become: true
@@ -113,7 +113,7 @@
             - ceph_db_wal_devices is defined
             - item.value.vg_name is defined
             - block_devices[item.key].holders|length == 0
-            - block_devices[item.key].partitions|length == 0
+            - block_devices[item.key].partitions|default([])|length == 0
 
         # Check that amount of OSDs per DB/WAL/DB+WAL VG doesn't exceed
         # the num_osds value and abort play if it does.
