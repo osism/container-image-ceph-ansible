@@ -29,6 +29,10 @@
           ansible.builtin.include_tasks: _add-device-links.yml
           loop: "{{ hostvars[inventory_hostname].ansible_devices.keys() | list }}"
 
+        - name: Add known partitions to the list of available block devices
+          ansible.builtin.include_tasks: _add-device-partitions.yml
+          loop: "{{ hostvars[inventory_hostname].ansible_devices.keys() | list }}"
+
         - name: Set UUIDs for OSD VGs/LVs
           ansible.builtin.set_fact:
             ceph_osd_devices: >-
