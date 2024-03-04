@@ -28,6 +28,10 @@
           ansible.builtin.include_tasks: _add-device-links.yml
           loop: "{{ hostvars[inventory_hostname].ansible_devices.keys() | list }}"
 
+        - name: Add known partitions to the list of available block devices
+          ansible.builtin.include_tasks: _add-device-partitions.yml
+          loop: "{{ hostvars[inventory_hostname].ansible_devices.keys() | list }}"
+
         # Can only create VGs when PV is known, so it MUST be present
         # in ceph_osd_devices and MUST NOT have holders or partitions
         - name: Create dict of block VGs -> PVs from ceph_osd_devices
