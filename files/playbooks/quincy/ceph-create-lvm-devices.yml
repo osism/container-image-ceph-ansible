@@ -624,6 +624,7 @@
             size: "{{ db_lv_sizes[item.db_vg].size_per_db_lv }}B"
           with_items: "{{ lvm_volumes }}"
           when:
+            - db_lv_sizes is defined
             - item.db is defined
             - item.db_vg is defined
             - item.db_vg in db_lv_sizes
@@ -638,6 +639,7 @@
             size: "{{ wal_lv_sizes[item.wal_vg].size_per_wal_lv }}B"
           with_items: "{{ lvm_volumes }}"
           when:
+            - wal_lv_sizes is defined
             - item.wal is defined
             - item.wal_vg is defined
             - item.wal_vg in wal_lv_sizes
@@ -652,6 +654,7 @@
             size: "{{ db_wal_wal_lv_sizes[item.wal_vg].size_per_wal_lv }}B"
           with_items: "{{ lvm_volumes }}"
           when:
+            - db_wal_wal_lv_sizes is defined
             - item.wal is defined
             - item.wal_vg is defined
             - item.wal_vg in db_wal_wal_lv_sizes
@@ -666,6 +669,7 @@
             size: "{{ db_wal_db_lv_sizes[item.db_vg].size_per_db_lv }}B"
           with_items: "{{ lvm_volumes }}"
           when:
+            - db_wal_db_lv_sizes is defined
             - item.db is defined
             - item.db_vg is defined
             - item.db_vg in db_wal_db_lv_sizes
