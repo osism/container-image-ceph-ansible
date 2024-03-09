@@ -1,0 +1,11 @@
+---
+- name: Apply role ceph-mds
+  hosts: "{{ mds_group_name|default('ceph-mds') }}"
+  become: true
+  roles:
+    - ceph-defaults
+    - ceph-facts
+    - ceph-handler
+    - ceph-container-common
+    - ceph-config
+    - ceph-mds
