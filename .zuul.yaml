@@ -29,6 +29,10 @@
     name: semaphore-container-image-ceph-ansible-push-quincy
     max: 1
 
+- semaphore:
+    name: semaphore-container-image-ceph-ansible-push-reef
+    max: 1
+
 - job:
     name: container-image-ceph-ansible-build
     pre-run: playbooks/pre.yml
@@ -45,12 +49,32 @@
       push_image: false
 
 - job:
+    name: container-image-ceph-ansible-build-reef
+    parent: container-image-ceph-ansible-build
+    vars:
+      version_ceph: reef
+      push_image: false
+
+- job:
     name: container-image-ceph-ansible-push-quincy
     parent: container-image-ceph-ansible-build
     semaphores:
       - name: semaphore-container-image-ceph-ansible-push-quincy
     vars:
       version_ceph: quincy
+      push_image: true
+    secrets:
+      - name: secret
+        secret: SECRET_CONTAINER_IMAGE_CEPH_ANSIBLE
+        pass-to-parent: true
+
+- job:
+    name: container-image-ceph-ansible-push-reef
+    parent: container-image-ceph-ansible-build
+    semaphores:
+      - name: semaphore-container-image-ceph-ansible-push-reef
+    vars:
+      version_ceph: reef
       push_image: true
     secrets:
       - name: secret
@@ -78,6 +102,7 @@
         - python-black
         - yamllint
         - container-image-ceph-ansible-build-quincy
+        - container-image-ceph-ansible-build-reef
     gate:
       jobs:
         - ansible-lint
@@ -95,9 +120,12 @@
     periodic-midnight:
       jobs:
         - container-image-ceph-ansible-push-quincy
+        - container-image-ceph-ansible-push-reef
     post:
       jobs:
         - container-image-ceph-ansible-push-quincy:
+            branches: main
+        - container-image-ceph-ansible-push-reef:
             branches: main
     tag:
       jobs:
