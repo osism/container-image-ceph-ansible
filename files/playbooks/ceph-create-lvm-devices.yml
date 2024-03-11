@@ -5,6 +5,7 @@
   gather_facts: true
   force_handlers: true
   strategy: linear
+  serial: 1
   vars:
     _ceph_block_vgs: {}
   tasks:
