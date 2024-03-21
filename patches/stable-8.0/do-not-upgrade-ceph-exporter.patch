@@ -1,9 +1,11 @@
+diff --git a/infrastructure-playbooks/rolling_update.yml b/infrastructure-playbooks/rolling_update.yml
+index 6aec239e4..1e3950523 100644
 --- a/infrastructure-playbooks/rolling_update.yml
 +++ b/infrastructure-playbooks/rolling_update.yml
-@@ -1143,50 +1143,6 @@
+@@ -1171,52 +1171,6 @@
        ansible.builtin.import_role:
          name: ceph-crash
-
+ 
 -- name: Upgrade ceph-exporter daemons
 -  hosts:
 -    - "{{ mon_group_name | default('mons') }}"
@@ -22,17 +24,19 @@
 -      ansible.builtin.meta: end_play
 -      when: not containerized_deployment | bool
 -
--    - name: Stop the ceph-exporter service
+-    - name: Stop the ceph-exporter service  # noqa: ignore-errors
 -      ansible.builtin.systemd:
 -        name: "{{ 'ceph-exporter@' + ansible_facts['hostname'] if containerized_deployment | bool else 'ceph-exporter.service' }}"
 -        state: stopped
+-      ignore_errors: true
 -
 -    # it needs to be done in a separate task otherwise the stop just before doesn't work.
--    - name: Mask and disable the ceph-exporter service
+-    - name: Mask and disable the ceph-exporter service  # noqa: ignore-errors
 -      ansible.builtin.systemd:
 -        name: "{{ 'ceph-exporter@' + ansible_facts['hostname'] if containerized_deployment | bool else 'ceph-exporter.service' }}"
 -        enabled: false
 -        masked: true
+-      ignore_errors: true
 -
 -    - name: Import ceph-defaults role
 -      ansible.builtin.import_role:
