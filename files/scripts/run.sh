@@ -46,14 +46,30 @@ cd $ENVIRONMENTS_DIRECTORY/$SUB
 
 export IFS=","
 for service in $services; do
-  ansible-playbook \
-    --vault-password-file $VAULT \
-    -e @$ENVIRONMENTS_DIRECTORY/configuration.yml \
-    -e @$ENVIRONMENTS_DIRECTORY/secrets.yml \
-    -e @secrets.yml \
-    -e @images.yml \
-    -e @configuration.yml \
-    --skip-tags=with_pkg \
-    "$@" \
-    $ANSIBLE_DIRECTORY/$ENVIRONMENT-$service.yml
+  if [[ -e $ENVIRONMENTS_DIRECTORY/$SUB/playbook-$service.yml ]]; then
+    ansible-playbook \
+      --vault-password-file $VAULT \
+      -e @$ENVIRONMENTS_DIRECTORY/configuration.yml \
+      -e @$ENVIRONMENTS_DIRECTORY/secrets.yml \
+      -e @secrets.yml \
+      -e @images.yml \
+      -e @configuration.yml \
+      --skip-tags=with_pkg \
+      "$@" \
+      playbook-$service.yml
+  elif [[ -e $ANSIBLE_DIRECTORY/$ENVIRONMENT-$service.yml ]]; then
+    ansible-playbook \
+      --vault-password-file $VAULT \
+      -e @$ENVIRONMENTS_DIRECTORY/configuration.yml \
+      -e @$ENVIRONMENTS_DIRECTORY/secrets.yml \
+      -e @secrets.yml \
+      -e @images.yml \
+      -e @configuration.yml \
+      --skip-tags=with_pkg \
+      "$@" \
+      $ANSIBLE_DIRECTORY/$ENVIRONMENT-$service.yml
+  else
+    echo "ERROR: service $service in environment $ENVIRONMENT not available"
+    exit 1
+  fi
 done
