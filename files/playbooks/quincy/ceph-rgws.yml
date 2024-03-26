@@ -2,6 +2,8 @@
 - name: Apply role ceph-rgw
   hosts: "{{ rgw_group_name|default('ceph-rgw') }}"
   become: true
+  serial: '{{ ceph_serial|default("0") }}'
+
   roles:
     - ceph-defaults
     - ceph-facts

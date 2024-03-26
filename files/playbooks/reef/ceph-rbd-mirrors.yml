@@ -2,6 +2,8 @@
 - name: Apply role ceph-rbd-mirror
   hosts: "{{ rbdmirror_group_name|default('ceph-rbdmirror') }}"
   become: true
+  serial: '{{ ceph_serial|default("0") }}'
+
   roles:
     - ceph-defaults
     - ceph-facts

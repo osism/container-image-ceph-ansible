@@ -2,6 +2,7 @@
 - name: Deploy ceph environment
   hosts: "{{ ceph_group_name|default('ceph') }}"
   become: true
+  serial: '{{ ceph_serial|default("0") }}'
 
   roles:
     - role: ceph-defaults
