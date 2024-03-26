@@ -2,6 +2,8 @@
 - name: Apply role ceph-client
   hosts: "{{ client_group_name|default('ceph-client') }}"
   become: true
+  serial: '{{ ceph_serial|default("0") }}'
+
   roles:
     - ceph-defaults
     - ceph-facts

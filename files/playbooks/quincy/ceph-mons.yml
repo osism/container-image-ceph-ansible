@@ -2,6 +2,7 @@
 - name: Apply role ceph-mon
   hosts: "{{ mon_group_name|default('ceph-mon') }}"
   become: true
+  serial: '{{ ceph_serial|default("0") }}'
 
   roles:
     - ceph-defaults
