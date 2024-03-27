@@ -7,6 +7,9 @@
     - ceph-defaults
     - ceph-facts
 
+  vars:
+    openstack_config: true
+
   tasks:
     - name: Include tasks from the ceph-osd role
       ansible.builtin.include_tasks:
