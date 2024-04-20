@@ -72,7 +72,7 @@ index 6d2634f00..fce1f38ce 100644
        delegate_to: "{{ item }}"
        changed_when: false
        run_once: true
-+      throttle: "{{ ceph_handler_osds_restart_throttle | default(-1) }}"
++      throttle: "{{ ceph_handler_osds_restart_throttle | default(1) }}"
  
      - name: Set _osd_handler_called after restart
        ansible.builtin.set_fact:

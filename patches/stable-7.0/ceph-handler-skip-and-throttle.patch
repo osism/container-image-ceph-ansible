@@ -72,7 +72,7 @@ index cc62deecc..0e7f482ad 100644
          CEPH_CONTAINER_BINARY: "{{ container_binary }}"
        delegate_to: "{{ groups[mon_group_name][0] }}"
        run_once: true
-+      throttle: "{{ ceph_handler_osds_restart_throttle | default(-1) }}"
++      throttle: "{{ ceph_handler_osds_restart_throttle | default(1) }}"
  
      # This does not just restart OSDs but everything else too. Unfortunately
      # at this time the ansible role does not have an OSD id list to use
