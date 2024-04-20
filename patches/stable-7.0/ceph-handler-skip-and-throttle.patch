@@ -49,7 +49,7 @@ index 112eb13c8..fb5fb40cd 100644
    delegate_to: "{{ item }}"
    run_once: True
 +  when: ceph_handler_mons_restart | default(True) | bool
-+  throttle: "{{ ceph_handler_mons_restart_throttle | default(-1) }}"
++  throttle: "{{ ceph_handler_mons_restart_throttle | default(1) }}"
  
  - name: set _mon_handler_called after restart
    set_fact:

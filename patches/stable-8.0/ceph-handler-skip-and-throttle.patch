@@ -49,7 +49,7 @@ index 0c970527a..ba0d1dbda 100644
    changed_when: false
    run_once: true
 +  when: ceph_handler_mons_restart | default(True) | bool
-+  throttle: "{{ ceph_handler_mons_restart_throttle | default(-1) }}"
++  throttle: "{{ ceph_handler_mons_restart_throttle | default(1) }}"
  
  - name: Set _mon_handler_called after restart
    ansible.builtin.set_fact:
