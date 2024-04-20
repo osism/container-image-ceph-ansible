@@ -1,0 +1,104 @@
+diff --git a/roles/ceph-handler/tasks/handler_crash.yml b/roles/ceph-handler/tasks/handler_crash.yml
+index b4039b10e..b51ce18e7 100644
+--- a/roles/ceph-handler/tasks/handler_crash.yml
++++ b/roles/ceph-handler/tasks/handler_crash.yml
+@@ -11,7 +11,10 @@
+     masked: no
+     daemon_reload: yes
+   ignore_errors: true
+-  when: hostvars[inventory_hostname]['_crash_handler_called'] | default(False) | bool
++  when:
++    - hostvars[inventory_hostname]['_crash_handler_called'] | default(False) | bool
++    - ceph_handler_crash_restart | default(True) | bool
++  throttle: "{{ ceph_handler_crash_restart_throttle | default(-1) }}"
+ 
+ - name: set _crash_handler_called after restart
+   set_fact:
+diff --git a/roles/ceph-handler/tasks/handler_mdss.yml b/roles/ceph-handler/tasks/handler_mdss.yml
+index 4043844f2..38e970d81 100644
+--- a/roles/ceph-handler/tasks/handler_mdss.yml
++++ b/roles/ceph-handler/tasks/handler_mdss.yml
+@@ -21,6 +21,8 @@
+   with_items: "{{ groups[mds_group_name] }}"
+   delegate_to: "{{ item }}"
+   run_once: True
++  when: ceph_handler_mdss_restart | default(True) | bool
++  throttle: "{{ ceph_handler_mdss_restart_throttle | default(-1) }}"
+ 
+ - name: set _mds_handler_called after restart
+   set_fact:
+diff --git a/roles/ceph-handler/tasks/handler_mgrs.yml b/roles/ceph-handler/tasks/handler_mgrs.yml
+index 35f1d40da..1c20a9c50 100644
+--- a/roles/ceph-handler/tasks/handler_mgrs.yml
++++ b/roles/ceph-handler/tasks/handler_mgrs.yml
+@@ -21,6 +21,8 @@
+   with_items: "{{ groups[mgr_group_name] }}"
+   delegate_to: "{{ item }}"
+   run_once: True
++  when: ceph_handler_mgrs_restart | default(True) | bool
++  throttle: "{{ ceph_handler_mgrs_restart_throttle | default(-1) }}"
+ 
+ - name: set _mgr_handler_called after restart
+   set_fact:
+diff --git a/roles/ceph-handler/tasks/handler_mons.yml b/roles/ceph-handler/tasks/handler_mons.yml
+index 112eb13c8..fb5fb40cd 100644
+--- a/roles/ceph-handler/tasks/handler_mons.yml
++++ b/roles/ceph-handler/tasks/handler_mons.yml
+@@ -25,6 +25,8 @@
+   with_items: "{{ groups[mon_group_name] }}"
+   delegate_to: "{{ item }}"
+   run_once: True
++  when: ceph_handler_mons_restart | default(True) | bool
++  throttle: "{{ ceph_handler_mons_restart_throttle | default(-1) }}"
+ 
+ - name: set _mon_handler_called after restart
+   set_fact:
+diff --git a/roles/ceph-handler/tasks/handler_osds.yml b/roles/ceph-handler/tasks/handler_osds.yml
+index cc62deecc..0e7f482ad 100644
+--- a/roles/ceph-handler/tasks/handler_osds.yml
++++ b/roles/ceph-handler/tasks/handler_osds.yml
+@@ -7,7 +7,9 @@
+   run_once: true
+ 
+ - name: osd handler
+-  when: trigger_restart | default(False) | bool
++  when:
++    - trigger_restart | default(False) | bool
++    - ceph_handler_osds_restart | default(True) | bool
+   block:
+     - name: set _osd_handler_called before restart
+       set_fact:
+@@ -23,6 +25,7 @@
+         CEPH_CONTAINER_BINARY: "{{ container_binary }}"
+       delegate_to: "{{ groups[mon_group_name][0] }}"
+       run_once: true
++      throttle: "{{ ceph_handler_osds_restart_throttle | default(-1) }}"
+ 
+     # This does not just restart OSDs but everything else too. Unfortunately
+     # at this time the ansible role does not have an OSD id list to use
+diff --git a/roles/ceph-handler/tasks/handler_rbdmirrors.yml b/roles/ceph-handler/tasks/handler_rbdmirrors.yml
+index f09198155..3f3e2d075 100644
+--- a/roles/ceph-handler/tasks/handler_rbdmirrors.yml
++++ b/roles/ceph-handler/tasks/handler_rbdmirrors.yml
+@@ -21,6 +21,8 @@
+   with_items: "{{ groups[rbdmirror_group_name] }}"
+   delegate_to: "{{ item }}"
+   run_once: True
++  when: ceph_handler_rbdmirrors_restart | default(True) | bool
++  throttle: "{{ ceph_handler_rbdmirrors_restart_throttle | default(-1) }}"
+ 
+ - name: set _rbdmirror_handler_called after restart
+   set_fact:
+diff --git a/roles/ceph-handler/tasks/handler_rgws.yml b/roles/ceph-handler/tasks/handler_rgws.yml
+index 4e11f3da3..6a70253e9 100644
+--- a/roles/ceph-handler/tasks/handler_rgws.yml
++++ b/roles/ceph-handler/tasks/handler_rgws.yml
+@@ -21,6 +21,8 @@
+   with_items: "{{ groups[rgw_group_name] }}"
+   delegate_to: "{{ item }}"
+   run_once: True
++  when: ceph_handler_rgws_restart | default(True) | bool
++  throttle: "{{ ceph_handler_rgws_restart_throttle | default(-1) }}"
+ 
+ - name: set _rgw_handler_called after restart
+   set_fact:

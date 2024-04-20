@@ -1,0 +1,104 @@
+diff --git a/roles/ceph-handler/tasks/handler_crash.yml b/roles/ceph-handler/tasks/handler_crash.yml
+index 44b049bcc..21af28e08 100644
+--- a/roles/ceph-handler/tasks/handler_crash.yml
++++ b/roles/ceph-handler/tasks/handler_crash.yml
+@@ -11,7 +11,10 @@
+     masked: false
+     daemon_reload: true
+   ignore_errors: true
+-  when: hostvars[inventory_hostname]['_crash_handler_called'] | default(False) | bool
++  when:
++    - hostvars[inventory_hostname]['_crash_handler_called'] | default(False) | bool
++    - ceph_handler_crash_restart | default(True) | bool
++  throttle: "{{ ceph_handler_crash_restart_throttle | default(-1) }}"
+ 
+ - name: Set _crash_handler_called after restart
+   ansible.builtin.set_fact:
+diff --git a/roles/ceph-handler/tasks/handler_mdss.yml b/roles/ceph-handler/tasks/handler_mdss.yml
+index 9e82d5483..f6f8212bd 100644
+--- a/roles/ceph-handler/tasks/handler_mdss.yml
++++ b/roles/ceph-handler/tasks/handler_mdss.yml
+@@ -22,6 +22,8 @@
+   delegate_to: "{{ item }}"
+   changed_when: false
+   run_once: true
++  when: ceph_handler_mdss_restart | default(True) | bool
++  throttle: "{{ ceph_handler_mdss_restart_throttle | default(-1) }}"
+ 
+ - name: Set _mds_handler_called after restart
+   ansible.builtin.set_fact:
+diff --git a/roles/ceph-handler/tasks/handler_mgrs.yml b/roles/ceph-handler/tasks/handler_mgrs.yml
+index 7984cc54d..4a67f2fd5 100644
+--- a/roles/ceph-handler/tasks/handler_mgrs.yml
++++ b/roles/ceph-handler/tasks/handler_mgrs.yml
+@@ -22,6 +22,8 @@
+   delegate_to: "{{ item }}"
+   changed_when: false
+   run_once: true
++  when: ceph_handler_mgrs_restart | default(True) | bool
++  throttle: "{{ ceph_handler_mgrs_restart_throttle | default(-1) }}"
+ 
+ - name: Set _mgr_handler_called after restart
+   ansible.builtin.set_fact:
+diff --git a/roles/ceph-handler/tasks/handler_mons.yml b/roles/ceph-handler/tasks/handler_mons.yml
+index 0c970527a..ba0d1dbda 100644
+--- a/roles/ceph-handler/tasks/handler_mons.yml
++++ b/roles/ceph-handler/tasks/handler_mons.yml
+@@ -26,6 +26,8 @@
+   delegate_to: "{{ item }}"
+   changed_when: false
+   run_once: true
++  when: ceph_handler_mons_restart | default(True) | bool
++  throttle: "{{ ceph_handler_mons_restart_throttle | default(-1) }}"
+ 
+ - name: Set _mon_handler_called after restart
+   ansible.builtin.set_fact:
+diff --git a/roles/ceph-handler/tasks/handler_osds.yml b/roles/ceph-handler/tasks/handler_osds.yml
+index 6d2634f00..fce1f38ce 100644
+--- a/roles/ceph-handler/tasks/handler_osds.yml
++++ b/roles/ceph-handler/tasks/handler_osds.yml
+@@ -7,7 +7,9 @@
+   run_once: true
+ 
+ - name: Osd handler
+-  when: trigger_restart | default(False) | bool
++  when:
++    - trigger_restart | default(False) | bool
++    - ceph_handler_osds_restart | default(True) | bool
+   block:
+     - name: Set _osd_handler_called before restart
+       ansible.builtin.set_fact:
+@@ -94,6 +96,7 @@
+       delegate_to: "{{ item }}"
+       changed_when: false
+       run_once: true
++      throttle: "{{ ceph_handler_osds_restart_throttle | default(-1) }}"
+ 
+     - name: Set _osd_handler_called after restart
+       ansible.builtin.set_fact:
+diff --git a/roles/ceph-handler/tasks/handler_rbdmirrors.yml b/roles/ceph-handler/tasks/handler_rbdmirrors.yml
+index 0e1c89322..4c5c1054d 100644
+--- a/roles/ceph-handler/tasks/handler_rbdmirrors.yml
++++ b/roles/ceph-handler/tasks/handler_rbdmirrors.yml
+@@ -22,6 +22,8 @@
+   delegate_to: "{{ item }}"
+   changed_when: false
+   run_once: true
++  when: ceph_handler_rbdmirrors_restart | default(True) | bool
++  throttle: "{{ ceph_handler_rbdmirrors_restart_throttle | default(-1) }}"
+ 
+ - name: Set _rbdmirror_handler_called after restart
+   ansible.builtin.set_fact:
+diff --git a/roles/ceph-handler/tasks/handler_rgws.yml b/roles/ceph-handler/tasks/handler_rgws.yml
+index 2929c3d6b..3d83c0172 100644
+--- a/roles/ceph-handler/tasks/handler_rgws.yml
++++ b/roles/ceph-handler/tasks/handler_rgws.yml
+@@ -22,6 +22,8 @@
+   delegate_to: "{{ item }}"
+   changed_when: false
+   run_once: true
++  when: ceph_handler_rgws_restart | default(True) | bool
++  throttle: "{{ ceph_handler_rgws_restart_throttle | default(-1) }}"
+ 
+ - name: Set _rgw_handler_called after restart
+   ansible.builtin.set_fact:
