@@ -3,6 +3,8 @@
   gather_facts: false
   hosts: "{{ mon_group_name|default('ceph-mon') }}[0]"
   become: true
+  strategy: "{{ osism_strategy|default('linear') }}"
+
   roles:
     - ceph-defaults
     - ceph-facts

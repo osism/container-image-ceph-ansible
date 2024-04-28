@@ -1,6 +1,7 @@
 ---
 - name: Pull container image
   hosts: "{{ ceph_group_name|default('ceph') }}"
+  strategy: "{{ osism_strategy|default('linear') }}"
 
   tasks:
     - name: Pull container image

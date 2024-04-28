@@ -2,6 +2,8 @@
 - name: Gather facts for ceph hosts
   hosts: "{{ ceph_group_name | default('ceph') }}"
   gather_facts: false
+  strategy: "{{ osism_strategy|default('linear') }}"
+
   tasks:
     - name: Gather facts for ceph hosts
       ansible.builtin.setup:
@@ -9,6 +11,8 @@
 - name: Gather facts for ceph hosts (if using --limit)
   hosts: "{{ ceph_group_name | default('ceph') }}"
   gather_facts: false
+  strategy: "{{ osism_strategy|default('linear') }}"
+
   tasks:
     - name: Gather facts for ceph hosts (if using --limit)
       ansible.builtin.setup:
@@ -23,6 +27,7 @@
   hosts: "{{ ceph_group_name | default('ceph') }}"
   become: true
   serial: '{{ ceph_serial|default("0") }}'
+  strategy: "{{ osism_strategy|default('linear') }}"
 
   roles:
     - ceph-defaults

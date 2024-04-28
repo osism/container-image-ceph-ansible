@@ -2,6 +2,7 @@
 - name: Create ceph pools
   hosts: "{{ osd_group_name|default('ceph-osd') }}"
   become: true
+  strategy: "{{ osism_strategy|default('linear') }}"
 
   roles:
     - ceph-defaults

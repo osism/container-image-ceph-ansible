@@ -2,6 +2,8 @@
 - name: Run preparations
   hosts: "{{ ceph_group_name|default('ceph') }}"
   become: true
+  strategy: "{{ osism_strategy|default('linear') }}"
+
   roles:
     - ceph-defaults
     - ceph-facts
@@ -10,6 +12,7 @@
   hosts: "{{ osd_group_name|default('ceph-osd') }}"
   become: true
   serial: '{{ ceph_serial|default("0") }}'
+  strategy: "{{ osism_strategy|default('linear') }}"
 
   roles:
     - ceph-defaults
