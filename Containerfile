@@ -8,31 +8,32 @@ ARG GROUP_ID=45000
 ARG GROUP_ID_DOCKER=999
 
 ENV DEBIAN_FRONTEND noninteractive
-SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
 USER root
 
-COPY patches /patches
+COPY --link patches /patches
 
-COPY files/library /ansible/library
-COPY files/tasks /ansible/tasks
+COPY --link files/library /ansible/library
+COPY --link files/tasks /ansible/tasks
 
-COPY files/playbooks/$CEPH_VERSION/* /ansible/
-COPY files/playbooks/*.yml /ansible/
-COPY files/playbooks/tasks/* /ansible/tasks/
-COPY files/playbooks/templates/* /ansible/templates/
-COPY files/playbooks/$CEPH_VERSION/ceph-purge-storage-node.yml /ceph-purge-storage-node.yml
-COPY files/playbooks/$CEPH_VERSION/ceph-purge-cluster.yml /ceph-purge-cluster.yml
+COPY --link files/playbooks/$CEPH_VERSION/* /ansible/
+COPY --link files/playbooks/*.yml /ansible/
+COPY --link files/playbooks/tasks/* /ansible/tasks/
+COPY --link files/playbooks/templates/* /ansible/templates/
+COPY --link files/playbooks/$CEPH_VERSION/ceph-purge-storage-node.yml /ceph-purge-storage-node.yml
+COPY --link files/playbooks/$CEPH_VERSION/ceph-purge-cluster.yml /ceph-purge-cluster.yml
 
-COPY files/scripts/* /
+COPY --link files/scripts/* /
 
-COPY files/ansible.cfg /etc/ansible/ansible.cfg
-COPY files/requirements.yml /ansible/galaxy/requirements.yml
-COPY files/ara.env /ansible/ara.env
+COPY --link files/ansible.cfg /etc/ansible/ansible.cfg
+COPY --link files/requirements.yml /ansible/galaxy/requirements.yml
+COPY --link files/ara.env /ansible/ara.env
 
-COPY files/src /src
+COPY --link files/src /src
 
 ADD https://github.com/mitogen-hq/mitogen/archive/refs/tags/v0.3.7.tar.gz /mitogen.tar.gz
+
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
 # hadolint ignore=DL3003
 RUN <<EOF
