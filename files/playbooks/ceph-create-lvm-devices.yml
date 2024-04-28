@@ -32,6 +32,16 @@
           ansible.builtin.include_tasks: tasks/_add-device-partitions.yml
           loop: "{{ hostvars[inventory_hostname].ansible_devices.keys() | list }}"
 
+        - name: Check whether ceph_db_wal_devices is used exclusively
+          ansible.builtin.fail:
+            msg: >
+              It is not possible to use ceph_db_devivces or ceph_wal_devices if
+              ceph_db_wal_devices is used. Remove ceph_db_devivces and/or ceph_wal_devices
+              in the host vars as required.
+          when:
+            - ceph_db_wal_devices is defined
+            - (ceph_db_devivces is defined or ceph_wal_devices is defined)
+
         # Can only create VGs when PV is known, so it MUST be present
         # in ceph_osd_devices and MUST NOT have holders or partitions
         - name: Create dict of block VGs -> PVs from ceph_osd_devices
