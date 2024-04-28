@@ -32,6 +32,8 @@ COPY files/ara.env /ansible/ara.env
 
 COPY files/src /src
 
+ADD https://github.com/mitogen-hq/mitogen/archive/refs/tags/v0.3.7.tar.gz /mitogen.tar.gz
+
 # hadolint ignore=DL3003
 RUN <<EOF
 set -e
@@ -126,6 +128,12 @@ ansible-galaxy role install -v -f -r /ansible/galaxy/requirements.yml -p /usr/sh
 ln -s /usr/share/ansible/roles /ansible/galaxy
 ansible-galaxy collection install -v -f -r /ansible/galaxy/requirements.yml -p /usr/share/ansible/collections
 ln -s /usr/share/ansible/collections /ansible/collections
+
+# install mitogen ansible plugin
+mkdir -p /usr/share/mitogen
+tar xzf /mitogen.tar.gz --strip-components=1 -C /usr/share/mitogen
+rm -rf /usr/share/mitogen/{tests,docs,.ci,.lgtm.yml,.travis.yml}
+rm /mitogen.tar.gz
 
 # prepare project repository
 PROJECT_VERSION=$(grep "ceph_ansible_version:" /release/$VERSION/ceph-$CEPH_VERSION.yml | awk -F': ' '{ print $2 }')
