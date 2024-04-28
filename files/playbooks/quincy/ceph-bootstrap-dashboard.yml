@@ -2,6 +2,7 @@
 - name: Bootstraph ceph dashboard
   hosts: manager
   gather_facts: false
+  strategy: "{{ osism_strategy|default('linear') }}"
 
   vars:
     ceph_dashboard_addr: 0.0.0.0
@@ -61,6 +62,7 @@
   hosts: "{{ mon_group_name|default('ceph-mon') }}"
   gather_facts: false
   serial: 1
+  strategy: "{{ osism_strategy|default('linear') }}"
 
   tasks:
     - name: Restart ceph manager service
