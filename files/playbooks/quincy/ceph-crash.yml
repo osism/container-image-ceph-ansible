@@ -15,6 +15,14 @@
   serial: '{{ ceph_serial|default("0") }}'
   strategy: "{{ osism_strategy|default('linear') }}"
 
+  vars:
+    ceph_handler_mdss_restart: false
+    ceph_handler_mgrs_restart: false
+    ceph_handler_mons_restart: false
+    ceph_handler_osds_restart: false
+    ceph_handler_rbdmirrors_restart: false
+    ceph_handler_rgws_restart: false
+
   roles:
     - ceph-defaults
     - ceph-facts
