@@ -75,7 +75,7 @@
       when: tempfile.path is defined
 
 - name: Restart ceph manager services
-  hosts: "{{ mon_group_name|default('ceph-mon') }}"
+  hosts: "{{ mgr_group_name|default('ceph-mgr') }}"
   gather_facts: false
   serial: 1
   strategy: "{{ osism_strategy|default('linear') }}"
