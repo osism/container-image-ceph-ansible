@@ -172,7 +172,7 @@
                   "data_vg": "ceph-" + item.value.osd_lvm_uuid,
                   "db": "osd-db-" + item.value.osd_lvm_uuid,
                   "db_vg": (ceph_db_devices[item.value.db_pv].vg_name
-                           if item.value.db_pv in ceph_db_devices
+                           if item.value.db_pv in ceph_db_devices|default({})
                            else ceph_db_wal_devices[item.value.db_pv].vg_name)
                 }
                 ]
@@ -194,7 +194,7 @@
                   "data_vg": "ceph-" + item.value.osd_lvm_uuid,
                   "wal": "osd-wal-" + item.value.osd_lvm_uuid,
                   "wal_vg": (ceph_wal_devices[item.value.wal_pv].vg_name
-                           if item.value.wal_pv in ceph_wal_devices
+                           if item.value.wal_pv in ceph_wal_devices|default({})
                            else ceph_db_wal_devices[item.value.wal_pv].vg_name)
                 }
                 ]
@@ -216,11 +216,11 @@
                   "data_vg": "ceph-" + item.value.osd_lvm_uuid,
                   "db": "osd-db-" + item.value.osd_lvm_uuid,
                   "db_vg": (ceph_db_devices[item.value.db_pv].vg_name
-                           if item.value.db_pv in ceph_db_devices
+                           if item.value.db_pv in ceph_db_devices|default({})
                            else ceph_db_wal_devices[item.value.db_pv].vg_name),
                   "wal": "osd-wal-" + item.value.osd_lvm_uuid,
                   "wal_vg": (ceph_wal_devices[item.value.wal_pv].vg_name
-                           if item.value.wal_pv in ceph_wal_devices
+                           if item.value.wal_pv in ceph_wal_devices|default({})
                            else ceph_db_wal_devices[item.value.wal_pv].vg_name)
                 }
                 ]
