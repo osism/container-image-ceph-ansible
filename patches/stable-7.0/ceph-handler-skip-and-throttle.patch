@@ -15,46 +15,55 @@ index b4039b10e..b51ce18e7 100644
  - name: set _crash_handler_called after restart
    set_fact:
 diff --git a/roles/ceph-handler/tasks/handler_mdss.yml b/roles/ceph-handler/tasks/handler_mdss.yml
-index 4043844f2..38e970d81 100644
+index 4043844f2..543a6d81a 100644
 --- a/roles/ceph-handler/tasks/handler_mdss.yml
 +++ b/roles/ceph-handler/tasks/handler_mdss.yml
-@@ -21,6 +21,8 @@
+@@ -18,9 +18,11 @@
+     - hostvars[item]['handler_mds_status'] | default(False) | bool
+     - hostvars[item]['_mds_handler_called'] | default(False) | bool
+     - hostvars[item].tmpdirpath.path is defined
++    - ceph_handler_mdss_restart | default(True) | bool
    with_items: "{{ groups[mds_group_name] }}"
    delegate_to: "{{ item }}"
    run_once: True
-+  when: ceph_handler_mdss_restart | default(True) | bool
 +  throttle: "{{ ceph_handler_mdss_restart_throttle | default(-1) }}"
  
  - name: set _mds_handler_called after restart
    set_fact:
 diff --git a/roles/ceph-handler/tasks/handler_mgrs.yml b/roles/ceph-handler/tasks/handler_mgrs.yml
-index 35f1d40da..1c20a9c50 100644
+index 35f1d40da..65edfaa59 100644
 --- a/roles/ceph-handler/tasks/handler_mgrs.yml
 +++ b/roles/ceph-handler/tasks/handler_mgrs.yml
-@@ -21,6 +21,8 @@
+@@ -18,9 +18,11 @@
+     - hostvars[item]['handler_mgr_status'] | default(False) | bool
+     - hostvars[item]['_mgr_handler_called'] | default(False) | bool
+     - hostvars[item].tmpdirpath.path is defined
++    - ceph_handler_mgrs_restart | default(True) | bool
    with_items: "{{ groups[mgr_group_name] }}"
    delegate_to: "{{ item }}"
    run_once: True
-+  when: ceph_handler_mgrs_restart | default(True) | bool
 +  throttle: "{{ ceph_handler_mgrs_restart_throttle | default(-1) }}"
  
  - name: set _mgr_handler_called after restart
    set_fact:
 diff --git a/roles/ceph-handler/tasks/handler_mons.yml b/roles/ceph-handler/tasks/handler_mons.yml
-index 112eb13c8..fb5fb40cd 100644
+index 112eb13c8..2bb6a6d71 100644
 --- a/roles/ceph-handler/tasks/handler_mons.yml
 +++ b/roles/ceph-handler/tasks/handler_mons.yml
-@@ -25,6 +25,8 @@
+@@ -22,9 +22,11 @@
+     - hostvars[item]['handler_mon_status'] | default(False) | bool
+     - hostvars[item]['_mon_handler_called'] | default(False) | bool
+     - hostvars[item].tmpdirpath.path is defined
++    - ceph_handler_mons_restart | default(True) | bool
    with_items: "{{ groups[mon_group_name] }}"
    delegate_to: "{{ item }}"
    run_once: True
-+  when: ceph_handler_mons_restart | default(True) | bool
 +  throttle: "{{ ceph_handler_mons_restart_throttle | default(1) }}"
  
  - name: set _mon_handler_called after restart
    set_fact:
 diff --git a/roles/ceph-handler/tasks/handler_osds.yml b/roles/ceph-handler/tasks/handler_osds.yml
-index cc62deecc..0e7f482ad 100644
+index cc62deecc..759b23ad1 100644
 --- a/roles/ceph-handler/tasks/handler_osds.yml
 +++ b/roles/ceph-handler/tasks/handler_osds.yml
 @@ -7,7 +7,9 @@
@@ -77,27 +86,33 @@ index cc62deecc..0e7f482ad 100644
      # This does not just restart OSDs but everything else too. Unfortunately
      # at this time the ansible role does not have an OSD id list to use
 diff --git a/roles/ceph-handler/tasks/handler_rbdmirrors.yml b/roles/ceph-handler/tasks/handler_rbdmirrors.yml
-index f09198155..3f3e2d075 100644
+index f09198155..8cdb5ee29 100644
 --- a/roles/ceph-handler/tasks/handler_rbdmirrors.yml
 +++ b/roles/ceph-handler/tasks/handler_rbdmirrors.yml
-@@ -21,6 +21,8 @@
+@@ -18,9 +18,11 @@
+     - hostvars[item]['handler_rbd_mirror_status'] | default(False) | bool
+     - hostvars[item]['_rbdmirror_handler_called'] | default(False) | bool
+     - hostvars[item].tmpdirpath.path is defined
++    - ceph_handler_rbdmirrors_restart | default(True) | bool
    with_items: "{{ groups[rbdmirror_group_name] }}"
    delegate_to: "{{ item }}"
    run_once: True
-+  when: ceph_handler_rbdmirrors_restart | default(True) | bool
 +  throttle: "{{ ceph_handler_rbdmirrors_restart_throttle | default(-1) }}"
  
  - name: set _rbdmirror_handler_called after restart
    set_fact:
 diff --git a/roles/ceph-handler/tasks/handler_rgws.yml b/roles/ceph-handler/tasks/handler_rgws.yml
-index 4e11f3da3..6a70253e9 100644
+index 4e11f3da3..140f2206a 100644
 --- a/roles/ceph-handler/tasks/handler_rgws.yml
 +++ b/roles/ceph-handler/tasks/handler_rgws.yml
-@@ -21,6 +21,8 @@
+@@ -18,9 +18,11 @@
+     - hostvars[item]['handler_rgw_status'] | default(False) | bool
+     - hostvars[item]['_rgw_handler_called'] | default(False) | bool
+     - hostvars[item].tmpdirpath.path is defined
++    - ceph_handler_rgws_restart | default(True) | bool
    with_items: "{{ groups[rgw_group_name] }}"
    delegate_to: "{{ item }}"
    run_once: True
-+  when: ceph_handler_rgws_restart | default(True) | bool
 +  throttle: "{{ ceph_handler_rgws_restart_throttle | default(-1) }}"
  
  - name: set _rgw_handler_called after restart
