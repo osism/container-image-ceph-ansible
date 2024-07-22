@@ -15,46 +15,58 @@ index 44b049bcc..21af28e08 100644
  - name: Set _crash_handler_called after restart
    ansible.builtin.set_fact:
 diff --git a/roles/ceph-handler/tasks/handler_mdss.yml b/roles/ceph-handler/tasks/handler_mdss.yml
-index 9e82d5483..f6f8212bd 100644
+index 9e82d5483..c7a0e1607 100644
 --- a/roles/ceph-handler/tasks/handler_mdss.yml
 +++ b/roles/ceph-handler/tasks/handler_mdss.yml
-@@ -22,6 +22,8 @@
+@@ -18,10 +18,12 @@
+     - hostvars[item]['handler_mds_status'] | default(False) | bool
+     - hostvars[item]['_mds_handler_called'] | default(False) | bool
+     - hostvars[item].tmpdirpath.path is defined
++    - ceph_handler_mdss_restart | default(True) | bool
+   with_items: "{{ groups[mds_group_name] }}"
    delegate_to: "{{ item }}"
    changed_when: false
    run_once: true
-+  when: ceph_handler_mdss_restart | default(True) | bool
 +  throttle: "{{ ceph_handler_mdss_restart_throttle | default(-1) }}"
  
  - name: Set _mds_handler_called after restart
    ansible.builtin.set_fact:
 diff --git a/roles/ceph-handler/tasks/handler_mgrs.yml b/roles/ceph-handler/tasks/handler_mgrs.yml
-index 7984cc54d..4a67f2fd5 100644
+index 7984cc54d..5398a3e78 100644
 --- a/roles/ceph-handler/tasks/handler_mgrs.yml
 +++ b/roles/ceph-handler/tasks/handler_mgrs.yml
-@@ -22,6 +22,8 @@
+@@ -18,10 +18,12 @@
+     - hostvars[item]['handler_mgr_status'] | default(False) | bool
+     - hostvars[item]['_mgr_handler_called'] | default(False) | bool
+     - hostvars[item].tmpdirpath.path is defined
++    - ceph_handler_mgrs_restart | default(True) | bool
+   with_items: "{{ groups[mgr_group_name] }}"
    delegate_to: "{{ item }}"
    changed_when: false
    run_once: true
-+  when: ceph_handler_mgrs_restart | default(True) | bool
 +  throttle: "{{ ceph_handler_mgrs_restart_throttle | default(-1) }}"
  
  - name: Set _mgr_handler_called after restart
    ansible.builtin.set_fact:
 diff --git a/roles/ceph-handler/tasks/handler_mons.yml b/roles/ceph-handler/tasks/handler_mons.yml
-index 0c970527a..ba0d1dbda 100644
+index 0c970527a..6f6395e1f 100644
 --- a/roles/ceph-handler/tasks/handler_mons.yml
 +++ b/roles/ceph-handler/tasks/handler_mons.yml
-@@ -26,6 +26,8 @@
+@@ -22,10 +22,12 @@
+     - hostvars[item]['handler_mon_status'] | default(False) | bool
+     - hostvars[item]['_mon_handler_called'] | default(False) | bool
+     - hostvars[item].tmpdirpath.path is defined
++    - ceph_handler_mons_restart | default(True) | bool
+   with_items: "{{ groups[mon_group_name] }}"
    delegate_to: "{{ item }}"
    changed_when: false
    run_once: true
-+  when: ceph_handler_mons_restart | default(True) | bool
 +  throttle: "{{ ceph_handler_mons_restart_throttle | default(1) }}"
  
  - name: Set _mon_handler_called after restart
    ansible.builtin.set_fact:
 diff --git a/roles/ceph-handler/tasks/handler_osds.yml b/roles/ceph-handler/tasks/handler_osds.yml
-index 6d2634f00..fce1f38ce 100644
+index 6d2634f00..582c41023 100644
 --- a/roles/ceph-handler/tasks/handler_osds.yml
 +++ b/roles/ceph-handler/tasks/handler_osds.yml
 @@ -7,7 +7,9 @@
@@ -77,27 +89,35 @@ index 6d2634f00..fce1f38ce 100644
      - name: Set _osd_handler_called after restart
        ansible.builtin.set_fact:
 diff --git a/roles/ceph-handler/tasks/handler_rbdmirrors.yml b/roles/ceph-handler/tasks/handler_rbdmirrors.yml
-index 0e1c89322..4c5c1054d 100644
+index 0e1c89322..6f446c6b4 100644
 --- a/roles/ceph-handler/tasks/handler_rbdmirrors.yml
 +++ b/roles/ceph-handler/tasks/handler_rbdmirrors.yml
-@@ -22,6 +22,8 @@
+@@ -18,10 +18,12 @@
+     - hostvars[item]['handler_rbd_mirror_status'] | default(False) | bool
+     - hostvars[item]['_rbdmirror_handler_called'] | default(False) | bool
+     - hostvars[item].tmpdirpath.path is defined
++    - ceph_handler_rbdmirrors_restart | default(True) | bool
+   with_items: "{{ groups[rbdmirror_group_name] }}"
    delegate_to: "{{ item }}"
    changed_when: false
    run_once: true
-+  when: ceph_handler_rbdmirrors_restart | default(True) | bool
 +  throttle: "{{ ceph_handler_rbdmirrors_restart_throttle | default(-1) }}"
  
  - name: Set _rbdmirror_handler_called after restart
    ansible.builtin.set_fact:
 diff --git a/roles/ceph-handler/tasks/handler_rgws.yml b/roles/ceph-handler/tasks/handler_rgws.yml
-index 2929c3d6b..3d83c0172 100644
+index 2929c3d6b..247aa418b 100644
 --- a/roles/ceph-handler/tasks/handler_rgws.yml
 +++ b/roles/ceph-handler/tasks/handler_rgws.yml
-@@ -22,6 +22,8 @@
+@@ -18,10 +18,12 @@
+     - hostvars[item]['handler_rgw_status'] | default(False) | bool
+     - hostvars[item]['_rgw_handler_called'] | default(False) | bool
+     - hostvars[item].tmpdirpath.path is defined
++    - ceph_handler_rgws_restart | default(True) | bool
+   with_items: "{{ groups[rgw_group_name] }}"
    delegate_to: "{{ item }}"
    changed_when: false
    run_once: true
-+  when: ceph_handler_rgws_restart | default(True) | bool
 +  throttle: "{{ ceph_handler_rgws_restart_throttle | default(-1) }}"
  
  - name: Set _rgw_handler_called after restart
