@@ -213,6 +213,8 @@ FROM python:3.12-slim-bookworm
 
 COPY --link --from=builder / /
 
+ENV PYTHONWARNINGS="ignore::UserWarning"
+
 VOLUME ["/ansible/secrets", "/ansible/logs", "/ansible/cache", "/share", "/interface"]
 USER dragon
 WORKDIR /ansible
