@@ -2,6 +2,9 @@
 - name: Build ceph-ansible image
   hosts: all
 
+  vars:
+    python_venv_dir: /tmp/venv
+
   environment:
     ceph_version: "{{ version_ceph | default('quincy') }}"
     registry: "{{ docker_registry }}"
