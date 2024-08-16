@@ -2,6 +2,17 @@
 - secret:
     name: SECRET_CONTAINER_IMAGE_CEPH_ANSIBLE
     data:
+      DTRACK_API_KEY: !encrypted/pkcs1-oaep
+        - l0biyyA7Yl7eF/xXc3yrGr9p7Jg43Rx1+LUbnZ/98Fh/jFRB3fM3DVxCWSOkyd5uGrLDS
+          IMnGFrp9WmpIw5RgiVK6gW7D3G/FZE2EJn7WSw94n56dz49LapEouguv8A1NiV4phBW25
+          L+D4Bug5SbfGBvI/NRLBcArodawxyYu3/FRG7lsgPCgsPGXcY/l7u88pd0XJEo/IMUsHb
+          XwuhOAzI9/H6zYfFh1n+Wlvn9+mlxgJBNQVKeP//WEhbxPtp4a3P35iQ5wHnjjLFH+4BL
+          ddA7GqqxZVkrlsdhGGtIyc/DDYWuTBNQgADMMGnXlO3ObJRAl7IOGUS2eOadnzV8EafAM
+          SmSzhHbJocYipvJM5WJJXA5oWgxG+CB8gnn4m+7AkPUOc43oZTmTXEQNNtg4PALfZNMvn
+          u5JbJ3WlTObwRNq+dMn5q4eYTtsODDOtWzztM4zZkvq07tjZ5lZylitZc/eePysF26sYQ
+          A8GHbgpfRKq1t97mjWeT4h5FGGlW5Ql/STjZb4DQpgc55U0d7YyNHkIBOexfeINSNULZ/
+          8THAGjfW3wyMaaYZlKU16xcyc60x6WkXGPda9DIAyN3f5ouYt9y6iDjfLO6G5fdrG3gMF
+          TWrNXo6WSfHK0MHIqxw68t5BveD5JRXFcPPkT2FbS1bSwHSwpJ6bVAb7y8PbVg=
       DOCKER_USERNAME: !encrypted/pkcs1-oaep
         - JYDswL5G9I//wPXt1/oyJpQR5sqLDwWUOzv61SxS5a6dnojtY8H1Iizm4UmtirgdhenF/
           RUGEuHQbHK8GzDrfOSF73mrPC+gt0C2S9MwfKXg3kvo4UBu149uSuLj3mYrkOsGzwxHcC
@@ -46,14 +57,12 @@
     parent: container-image-ceph-ansible-build
     vars:
       version_ceph: quincy
-      push_image: false
 
 - job:
     name: container-image-ceph-ansible-build-reef
     parent: container-image-ceph-ansible-build
     vars:
       version_ceph: reef
-      push_image: false
 
 - job:
     name: container-image-ceph-ansible-push-quincy
@@ -63,6 +72,7 @@
     vars:
       version_ceph: quincy
       push_image: true
+      push_sbom: true
     secrets:
       - name: secret
         secret: SECRET_CONTAINER_IMAGE_CEPH_ANSIBLE
@@ -76,6 +86,7 @@
     vars:
       version_ceph: reef
       push_image: true
+      push_sbom: true
     secrets:
       - name: secret
         secret: SECRET_CONTAINER_IMAGE_CEPH_ANSIBLE
@@ -86,6 +97,7 @@
     parent: container-image-ceph-ansible-build
     vars:
       push_image: true
+      push_sbom: true
     secrets:
       - name: secret
         secret: SECRET_CONTAINER_IMAGE_CEPH_ANSIBLE
