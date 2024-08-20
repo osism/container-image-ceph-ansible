@@ -1,12 +1,16 @@
---- a/roles/ceph-facts/tasks/facts.yml
-+++ b/roles/ceph-facts/tasks/facts.yml
-@@ -8,9 +8,6 @@
-   set_fact:
-     is_atomic: "{{ stat_ostree.stat.exists }}"
-
--- name: import_tasks container_binary.yml
--  import_tasks: container_binary.yml
+--- a/roles/ceph-facts/tasks/container_binary.yml
++++ b/roles/ceph-facts/tasks/container_binary.yml
+@@ -1,10 +1,5 @@
+ ---
+-- name: check if podman binary is present
+-  stat:
+-    path: /usr/bin/podman
+-  register: podman_binary
 -
- - name: set_fact ceph_cmd
+ - name: set_fact container_binary
    set_fact:
-     ceph_cmd: "{{ container_binary + ' run --rm --net=host -v /etc/ceph:/etc/ceph:z -v /var/lib/ceph:/var/lib/ceph:z -v /var/run/ceph:/var/run/ceph:z --entrypoint=ceph ' + ceph_docker_registry + '/' + ceph_docker_image + ':' + ceph_docker_image_tag if containerized_deployment | bool else 'ceph' }}"
+-    container_binary: "{{ 'podman' if (podman_binary.stat.exists and ansible_facts['distribution'] == 'Fedora') or (ansible_facts['os_family'] == 'RedHat' and ansible_facts['distribution_major_version'] in ['8', '9']) else 'docker' }}"
+-  when: not docker2podman | default(false) | bool
+\ No newline at end of file
++    container_binary: "docker"
++  when: not docker2podman | default(false) | bool
