@@ -1,23 +1,21 @@
 ---
-- name: Deploy ceph environment
-  hosts: "{{ ceph_group_name|default('ceph') }}"
-  become: true
-  serial: '{{ ceph_serial|default("0") }}'
-  strategy: "{{ osism_strategy|default('linear') }}"
+- name: Run ceph-mons play
+  ansible.builtin.import_playbook: ceph-mons.yml
 
-  roles:
-    - role: ceph-defaults
-    - role: ceph-facts
-    - role: ceph-infra
-    - role: ceph-handler
-    - role: ceph-container-common
-    - role: ceph-config
-    - role: ceph-mon
-    - role: ceph-mgr
-    - role: ceph-osd
-    - role: ceph-crash
-      when: enable_ceph_crash|default(true)|bool
-    - role: ceph-mds
-      when: enable_ceph_mds|default(false)|bool
-    - role: ceph-rgw
-      when: enable_ceph_rgw|default(false)|bool
+- name: Run ceph-mgrs play
+  ansible.builtin.import_playbook: ceph-mgrs.yml
+
+- name: Run ceph-osds play
+  ansible.builtin.import_playbook: ceph-osds.yml
+
+- name: Run ceph-crash play
+  ansible.builtin.import_playbook: ceph-crash.yml
+  when: enable_ceph_crash|default(true)|bool
+
+- name: Run ceph-mdss play
+  ansible.builtin.import_playbook: ceph-mdss.yml
+  when: enable_ceph_mds|default(false)|bool
+
+- name: Run ceph-rgws play
+  ansible.builtin.import_playbook: ceph-rgws.yml
+  when: enable_ceph_rgw|default(false)|bool
