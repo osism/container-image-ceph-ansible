@@ -72,6 +72,15 @@
             pvresize: true
           with_items: "{{ lvm_volumes }}"
           when:
+            - not ansible_check_mode
+            - item.data_vg in _ceph_block_vgs
+
+        - name: Print 'Create block VGs'
+          ansible.builtin.debug:
+            msg: "Create {{ item.data_vg }} @ {{ _ceph_block_vgs[item.data_vg] }}"
+          with_items: "{{ lvm_volumes }}"
+          when:
+            - ansible_check_mode
             - item.data_vg in _ceph_block_vgs
 
         # Create block LVs
@@ -84,6 +93,15 @@
             size: "100%VG"
           with_items: "{{ lvm_volumes }}"
           when:
+            - not ansible_check_mode
+            - item.data_vg in _ceph_block_vgs
+
+        - name: Print 'Create block LVs'
+          ansible.builtin.debug:
+            msg: "Create {{ item.data_vg }}/item.data with size 100%VG"
+          with_items: "{{ lvm_volumes }}"
+          when:
+            - ansible_check_mode
             - item.data_vg in _ceph_block_vgs
 
         - name: Create DB VGs
@@ -94,6 +112,18 @@
             pvresize: true
           with_dict: "{{ ceph_db_devices }}"
           when:
+            - not ansible_check_mode
+            - ceph_db_devices is defined
+            - item.value.vg_name is defined
+            - block_devices[item.key].holders|length == 0
+            - block_devices[item.key].partitions|default([])|length == 0
+
+        - name: Print 'Create DB VGs'
+          ansible.builtin.debug:
+            msg: "Create {{ item.value.vg_name }} @ /dev/{{ item.key }}"
+          with_items: "{{ lvm_volumes }}"
+          when:
+            - ansible_check_mode
             - ceph_db_devices is defined
             - item.value.vg_name is defined
             - block_devices[item.key].holders|length == 0
@@ -107,6 +137,18 @@
             pvresize: true
           with_dict: "{{ ceph_wal_devices }}"
           when:
+            - not ansible_check_mode
+            - ceph_wal_devices is defined
+            - item.value.vg_name is defined
+            - block_devices[item.key].holders|length == 0
+            - block_devices[item.key].partitions|default([])|length == 0
+
+        - name: Print 'Create WAL VGs'
+          ansible.builtin.debug:
+            msg: "Create {{ item.value.vg_name }} @ /dev/{{ item.key }}"
+          with_items: "{{ lvm_volumes }}"
+          when:
+            - ansible_check_mode
             - ceph_wal_devices is defined
             - item.value.vg_name is defined
             - block_devices[item.key].holders|length == 0
@@ -120,6 +162,18 @@
             pvresize: true
           with_dict: "{{ ceph_db_wal_devices }}"
           when:
+            - not ansible_check_mode
+            - ceph_db_wal_devices is defined
+            - item.value.vg_name is defined
+            - block_devices[item.key].holders|length == 0
+            - block_devices[item.key].partitions|default([])|length == 0
+
+        - name: Print 'Create DB+WAL VGs'
+          ansible.builtin.debug:
+            msg: "Create {{ item.value.vg_name }} @ /dev/{{ item.key }}"
+          with_items: "{{ lvm_volumes }}"
+          when:
+            - ansible_check_mode
             - ceph_db_wal_devices is defined
             - item.value.vg_name is defined
             - block_devices[item.key].holders|length == 0
@@ -275,6 +329,7 @@
               - 'vg_name =~ ceph-db-.* && vg_name !~ ceph-db-wal-.*'
           changed_when: false
           register: _db_vgs_cmd_output
+          check_mode: false
 
         - name: Gather WAL VGs with total and available size in bytes
           become: true
@@ -294,6 +349,7 @@
               - 'vg_name =~ ceph-wal-.*'
           changed_when: false
           register: _wal_vgs_cmd_output
+          check_mode: false
 
         - name: Gather DB+WAL VGs with total and available size in bytes
           become: true
@@ -313,6 +369,7 @@
               - 'vg_name =~ ceph-db-wal-.*'
           changed_when: false
           register: _db_wal_vgs_cmd_output
+          check_mode: false
 
         - name: Combine JSON from _db/wal/db_wal_vgs_cmd_output
           ansible.builtin.set_fact:
@@ -634,6 +691,18 @@
             size: "{{ db_lv_sizes[item.db_vg].size_per_db_lv }}B"
           with_items: "{{ lvm_volumes }}"
           when:
+            - not ansible_check_mode
+            - db_lv_sizes is defined
+            - item.db is defined
+            - item.db_vg is defined
+            - item.db_vg in db_lv_sizes
+
+        - name: Print 'Create DB LVs for ceph_db_devices'
+          ansible.builtin.debug:
+            msg: "Create {{ item.db_vg }}/{{ item.db }} with size {{ db_lv_sizes[item.db_vg].size_per_db_lv }}"
+          with_items: "{{ lvm_volumes }}"
+          when:
+            - ansible_check_mode
             - db_lv_sizes is defined
             - item.db is defined
             - item.db_vg is defined
@@ -649,6 +718,18 @@
             size: "{{ wal_lv_sizes[item.wal_vg].size_per_wal_lv }}B"
           with_items: "{{ lvm_volumes }}"
           when:
+            - not ansible_check_mode
+            - wal_lv_sizes is defined
+            - item.wal is defined
+            - item.wal_vg is defined
+            - item.wal_vg in wal_lv_sizes
+
+        - name: Print 'Create WAL LVs for ceph_wal_devices'
+          ansible.builtin.debug:
+            msg: "Create {{ item.wal_vg }}/{{ item.wal }} with size {{ wal_lv_sizes[item.wal_vg].size_per_wal_lv }}"
+          with_items: "{{ lvm_volumes }}"
+          when:
+            - ansible_check_mode
             - wal_lv_sizes is defined
             - item.wal is defined
             - item.wal_vg is defined
@@ -664,6 +745,18 @@
             size: "{{ db_wal_wal_lv_sizes[item.wal_vg].size_per_wal_lv }}B"
           with_items: "{{ lvm_volumes }}"
           when:
+            - not ansible_check_mode
+            - db_wal_wal_lv_sizes is defined
+            - item.wal is defined
+            - item.wal_vg is defined
+            - item.wal_vg in db_wal_wal_lv_sizes
+
+        - name: Print 'Create WAL LVs for ceph_db_wal_devices'
+          ansible.builtin.debug:
+            msg: "Create {{ item.wal_vg }}/{{ item.wal }} with size {{ db_wal_wal_lv_sizes[item.wal_vg].size_per_wal_lv }}"
+          with_items: "{{ lvm_volumes }}"
+          when:
+            - ansible_check_mode
             - db_wal_wal_lv_sizes is defined
             - item.wal is defined
             - item.wal_vg is defined
@@ -679,6 +772,18 @@
             size: "{{ db_wal_db_lv_sizes[item.db_vg].size_per_db_lv }}B"
           with_items: "{{ lvm_volumes }}"
           when:
+            - not ansible_check_mode
+            - db_wal_db_lv_sizes is defined
+            - item.db is defined
+            - item.db_vg is defined
+            - item.db_vg in db_wal_db_lv_sizes
+
+        - name: Print 'Create DB LVs for ceph_db_wal_devices'
+          ansible.builtin.debug:
+            msg: "Create {{ item.db_vg }}/{{ item.db }} with size {{ db_wal_db_lv_sizes[item.db_vg].size_per_db_lv }}"
+          with_items: "{{ lvm_volumes }}"
+          when:
+            - ansible_check_mode
             - db_wal_db_lv_sizes is defined
             - item.db is defined
             - item.db_vg is defined
@@ -702,6 +807,8 @@
               - 'vg_name =~ ceph-.*'
           changed_when: false
           register: _lvs_cmd_output
+          when:
+            - not ansible_check_mode
 
         - name: Get list of Ceph PVs with associated VGs
           become: true
@@ -719,6 +826,8 @@
               - 'vg_name =~ ceph-.*'
           changed_when: false
           register: _pvs_cmd_output
+          when:
+            - not ansible_check_mode
 
         - name: Combine JSON from _lvs_cmd_output/_pvs_cmd_output
           ansible.builtin.set_fact:
@@ -731,6 +840,8 @@
                   list_merge="append_rp"
                 )
               }}
+          when:
+            - not ansible_check_mode
 
         - name: Create list of VG/LV names
           ansible.builtin.set_fact:
@@ -740,6 +851,8 @@
                 [item.vg_name + "/" + item.lv_name]
               }}
           with_items: "{{ (_lvs_cmd_output.stdout | from_json).report[0].lv }}"
+          when:
+            - not ansible_check_mode
 
         - name: Fail if block LV defined in lvm_volumes is missing
           ansible.builtin.fail:
@@ -747,6 +860,7 @@
               Missing block LV {{ item.data }} on VG {{ item.data_vg }}
           with_items: "{{ lvm_volumes }}"
           when:
+            - not ansible_check_mode
             - item.data_vg + "/" + item.data not in _vg_lv_names
 
         - name: Fail if DB LV defined in lvm_volumes is missing
@@ -755,6 +869,7 @@
               Missing DB LV {{ item.db }} on VG {{ item.db_vg }}
           with_items: "{{ lvm_volumes }}"
           when:
+            - not ansible_check_mode
             - item.db_vg is defined
             - item.db_vg + "/" + item.db not in _vg_lv_names
 
@@ -764,12 +879,15 @@
               Missing WAL LV {{ item.wal }} on VG {{ item.wal_vg }}
           with_items: "{{ lvm_volumes }}"
           when:
+            - not ansible_check_mode
             - item.wal_vg is defined
             - item.wal_vg + "/" + item.wal not in _vg_lv_names
 
         - name: Print LVM report data
           ansible.builtin.debug:
             var: lvm_report
+          when:
+            - not ansible_check_mode
 
       # condition is for entire block
       when:
