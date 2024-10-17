@@ -1,0 +1,31 @@
+---
+- name: Enable storage node
+  hosts: "{{ hosts_enable_storage_node | default('none') }}"
+  gather_facts: false
+
+  tasks:
+    - name: Check if podman binary is present
+      ansible.builtin.stat:
+        path: /usr/bin/podman
+      register: _podman_binary
+
+    - name: Set fact _container_binary fact
+      ansible.builtin.set_fact:
+        _container_binary: "{{ 'podman' if _podman_binary.stat.exists else 'docker' }}"
+
+    - name: Get OSD IDs
+      become: true
+      ansible.builtin.shell: |
+        set -o pipefail
+        ls /var/lib/ceph/osd/ | sed 's/.*-//'
+      args:
+        executable: /bin/bash
+      changed_when: false
+      failed_when: false
+      register: _osd_ids
+
+    - name: Remove noout flag on OSDs
+      ansible.builtin.command: "{{ _container_binary }} exec ceph-mon-{{ hostvars[groups[mon_group_name][0]]['ansible_facts']['hostname'] }} ceph osd rm-noout osd.{{ item }}"
+      loop: "{{ _osd_ids.stdout_lines }}"
+      delegate_to: "{{ groups[mon_group_name][0] }}"
+      changed_when: false
