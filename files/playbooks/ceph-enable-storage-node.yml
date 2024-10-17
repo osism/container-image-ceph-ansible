@@ -28,4 +28,4 @@
       ansible.builtin.command: "{{ _container_binary }} exec ceph-mon-{{ hostvars[groups[mon_group_name][0]]['ansible_facts']['hostname'] }} ceph osd rm-noout osd.{{ item }}"
       loop: "{{ _osd_ids.stdout_lines }}"
       delegate_to: "{{ groups[mon_group_name][0] }}"
-      changed_when: false
+      changed_when: true
