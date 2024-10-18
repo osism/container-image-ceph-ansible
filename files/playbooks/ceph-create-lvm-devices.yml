@@ -1,7 +1,6 @@
 ---
 - name: Ceph create LVM devices
-  hosts:
-    - ceph-osd
+  hosts: "{{ osd_group_name|default('ceph-osd') }}"
   gather_facts: true
   force_handlers: true
   strategy: "{{ osism_strategy|default('linear') }}"
