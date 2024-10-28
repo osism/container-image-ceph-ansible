@@ -64,7 +64,7 @@ apt-get install -y --no-install-recommends \
   python3-wheel \
   rsync \
   sshpass
-python3 -m pip install --no-cache-dir --upgrade 'pip==24.2'
+python3 -m pip install --no-cache-dir --upgrade 'pip==24.3.1'
 pip3 install --no-cache-dir -r /src/requirements.txt
 
 # add user
