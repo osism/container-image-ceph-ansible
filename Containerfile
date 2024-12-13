@@ -35,7 +35,6 @@ ADD https://github.com/mitogen-hq/mitogen/archive/refs/tags/v0.3.19.tar.gz /mito
 
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
-# hadolint ignore=DL3003
 RUN <<EOF
 set -e
 set -x
@@ -167,7 +166,6 @@ mkdir -p \
   /ansible/roles/ceph-config \
   /ansible/roles/ceph-defaults
 
-# hadolint ignore=DL3059
 mkdir -p /tests
 cp -r /repository/tests/* /tests
 
