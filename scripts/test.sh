@@ -102,3 +102,5 @@ sleep 60
 
 docker ps
 docker exec -it ceph-mon-$(hostname) ceph -s
+
+docker exec -it test /run.sh openstack_config -v || exit 1
