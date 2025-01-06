@@ -1,0 +1,66 @@
+From 0995ce74d6edf68db5d271be153ce93f23ab8f8d Mon Sep 17 00:00:00 2001
+From: Jan Horstmann <horstmann@osism.tech>
+Date: Thu, 14 Mar 2024 17:52:29 +0100
+Subject: [PATCH] ceph-config: fix calculation of `num_osds`
+
+The number of OSDs defined by the `lvm_volumes` variable is added to
+`num_osds` in task `Count number of osds for lvm scenario`. Therefore
+theses devices must not be counted in task
+`Set_fact num_osds (add existing osds)`.
+There are currently three problems with the existing approach:
+1. Bluestore DB and WAL devices are counted as OSDs
+2. `lvm_volumes` supports a second notation to directly specify logical
+   volumes instead of devices when the `data_vg` key exists.
+   This scenario is not yet accounted for.
+3. The `difference` filter used to remove devices from `lvm_volumes`
+   returns a list of **unique** elements, thus not accounting for
+   multiple OSDs on a single device
+
+The first problem is solved by filtering the list of logical volumes for
+devices used as `type` `block`.
+For the second and third problem lists are created from `lvm_volumes`
+containing either paths to devices or logical volumes devices.
+For the second problem the output of `ceph-volume` is simply filtered
+for `lv_path`s appearing in the list of logical volume devices described
+above.
+To solve the third problem the remaining OSDs in the output are
+compiled into a list of their used devices, which is then filtered for
+devices appearing in the list of devices from `lvm_volumes`.
+
+Fixes: https://github.com/ceph/ceph-ansible/issues/7435
+
+Signed-off-by: Jan Horstmann <horstmann@osism.tech>
+---
+ roles/ceph-config/tasks/main.yml | 15 ++++++++++++++-
+ 1 file changed, 14 insertions(+), 1 deletion(-)
+
+diff --git a/roles/ceph-config/tasks/main.yml b/roles/ceph-config/tasks/main.yml
+index 3dad8af7a..c25fd20e2 100644
+--- a/roles/ceph-config/tasks/main.yml
++++ b/roles/ceph-config/tasks/main.yml
+@@ -91,8 +91,21 @@
+       changed_when: false
+ 
+     - name: Set_fact num_osds (add existing osds)
++      vars:
++        lvm_volumes_devices: "{{ lvm_volumes | default([]) | rejectattr('data_vg', 'defined') | map(attribute='data') | list }}"
++        lvm_volumes_lv_paths: "{{
++          ['/dev']
++          | product(
++            lvm_volumes | default([]) | selectattr('data_vg', 'defined') | map(attribute='data_vg')
++            | zip(
++              lvm_volumes | default([]) | selectattr('data_vg', 'defined') | map(attribute='data')
++            )
++            | map('join', '/')
++          )
++          | map('join', '/')
++        }}"
+       ansible.builtin.set_fact:
+-        num_osds: "{{ num_osds | int + (lvm_list.stdout | default('{}') | from_json | dict2items | map(attribute='value') | flatten | map(attribute='devices') | sum(start=[]) | difference(lvm_volumes | default([]) | map(attribute='data')) | length | int) }}"
++        num_osds: "{{ num_osds | int + (lvm_list.stdout | default('{}') | from_json | dict2items | map(attribute='value') | flatten | selectattr('type', 'equalto', 'block') | rejectattr('lv_path', 'in', lvm_volumes_lv_paths) | map(attribute='devices') | flatten | reject('in', lvm_volumes_devices) | length | int) }}"
+ 
+ - name: Set osd related config facts
+   when: inventory_hostname in groups.get(osd_group_name, [])
+-- 
+2.45.1
+
