@@ -14,6 +14,6 @@
   tasks:
     - name: Include tasks from the ceph-osd role
       ansible.builtin.include_tasks:
-        file: openstack_config.yml
+        file: tasks/openstack_config.yml
       when:
         - inventory_hostname == groups[osd_group_name] | last
