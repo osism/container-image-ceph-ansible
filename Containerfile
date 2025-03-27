@@ -32,6 +32,7 @@ COPY --link files/ara.env /ansible/ara.env
 COPY --link files/src /src
 
 ADD https://github.com/mitogen-hq/mitogen/archive/refs/tags/v0.3.22.tar.gz /mitogen.tar.gz
+COPY --from=ghcr.io/astral-sh/uv:0.6.10 /uv /usr/local/bin/uv
 
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
@@ -63,8 +64,7 @@ apt-get install -y --no-install-recommends \
   python3-wheel \
   rsync \
   sshpass
-python3 -m pip install --no-cache-dir --upgrade 'pip==25.0.1'
-pip3 install --no-cache-dir -r /src/requirements.txt
+uv pip install --no-cache --system -r /src/requirements.txt
 
 # add user
 groupadd -g "$GROUP_ID" dragon
@@ -97,7 +97,7 @@ cp -r /defaults/* /ansible/group_vars/
 rm -f /ansible/group_vars/LICENSE /ansible/group_vars/README.md
 
 # install required python packages
-pip3 install --no-cache-dir -r /requirements.txt
+uv pip install --no-cache --system -r /requirements.txt
 
 # set ansible version in the motd
 ansible_version=$(python3 -c 'import ansible; print(ansible.release.__version__)')
@@ -200,9 +200,9 @@ rm -rf \
   /var/lib/apt/lists/* \
   /var/tmp/*
 
-pip3 install --no-cache-dir pyclean==3.0.0
+uv pip install --no-cache --system pyclean==3.0.0
 pyclean /usr
-pip3 uninstall -y pyclean
+uv pip uninstall --system pyclean
 EOF
 
 USER dragon
