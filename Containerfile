@@ -76,13 +76,14 @@ git clone https://github.com/osism/release /release
 
 # run preparations
 git clone https://github.com/osism/ansible-playbooks /playbooks
-( cd /playbooks || exit; git fetch --all --force; git checkout "$(yq -M -r .playbooks_version "/release/$VERSION/ceph.yml")" )
-
 git clone https://github.com/osism/defaults /defaults
-( cd /defaults || exit; git fetch --all --force; git checkout "$(yq -M -r .defaults_version "/release/$VERSION/ceph.yml")" )
-
 git clone https://github.com/osism/cfg-generics /generics
-( cd /generics || exit; git fetch --all --force; git checkout "$(yq -M -r .generics_version "/release/$VERSION/ceph.yml")" )
+
+if [ "$VERSION" != "latest" ]; then
+  ( cd /playbooks || exit; git fetch --all --force; git checkout "$(yq -M -r .playbooks_version "/release/$VERSION/base.yml")" )
+  ( cd /defaults || exit; git fetch --all --force; git checkout "$(yq -M -r .defaults_version "/release/$VERSION/base.yml")" )
+  ( cd /generics || exit; git fetch --all --force; git checkout "$(yq -M -r .generics_version "/release/$VERSION/base.yml")" )
+fi
 
 # add inventory files
 mkdir -p /ansible/inventory.generics /ansible/inventory
