@@ -12,7 +12,7 @@ VERSION = os.environ.get("VERSION", "latest")
 
 # load versions files from release repository
 
-with open("/release/%s/base.yml" % VERSION, "rb") as fp:
+with open("/release/latest/base.yml", "rb") as fp:
     versions = yaml.load(fp, Loader=yaml.FullLoader)
 
 # prepare jinja2 environment
@@ -33,7 +33,7 @@ if VERSION == "latest":
         }
     )
 else:
-    with open("/release/%s/ceph.yml" % VERSION, "rb") as fp:
+    with open(f"/release/latest/ceph-{CEPH_VERSION}.yml", "rb") as fp:
         versions_ceph = yaml.load(fp, Loader=yaml.FullLoader)
 
     result = template.render(
