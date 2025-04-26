@@ -1,0 +1,88 @@
+---
+- name: Bootstraph ceph dashboard
+  hosts: manager
+  gather_facts: false
+  strategy: "{{ osism_strategy|default('linear') }}"
+
+  vars:
+    ceph_dashboard_addr: 0.0.0.0
+    ceph_dashboard_password: password
+    ceph_dashboard_port: 7000
+    ceph_dashboard_username: admin
+    # NOTE: Allow customisation of standby behaviour and error status code
+    #       Use upstream defaults as default:
+    #       https://docs.ceph.com/en/reef/mgr/dashboard/#disable-the-redirection
+    #       https://docs.ceph.com/en/reef/mgr/dashboard/#configure-the-error-status-code
+    ceph_dashboard_standby_behaviour: redirect
+    ceph_dashboard_standby_error_status_code: 503
+
+  tasks:
+    # NOTE: disable and re-enable the dashboard to trigger a restart of the dashboard
+    - name: Disable the ceph dashboard
+      ansible.builtin.command: ceph mgr module disable dashboard  # noqa 301
+      environment:
+        INTERACTIVE: false
+
+    - name: Set mgr/dashboard/ssl to false
+      ansible.builtin.command: ceph config set mgr mgr/dashboard/ssl false  # noqa 301
+      environment:
+        INTERACTIVE: false
+
+    - name: "Set mgr/dashboard/server_port to {{ ceph_dashboard_port }}"
+      ansible.builtin.command: "ceph config set mgr mgr/dashboard/server_port {{ ceph_dashboard_port }}"  # noqa 301
+      environment:
+        INTERACTIVE: false
+
+    - name: "Set mgr/dashboard/server_addr to {{ ceph_dashboard_addr }}"
+      ansible.builtin.command: "ceph config set mgr mgr/dashboard/server_addr {{ ceph_dashboard_addr }}"  # noqa 301
+      environment:
+        INTERACTIVE: false
+
+    - name: "Set mgr/dashboard/standby_behaviour to {{ ceph_dashboard_standby_behaviour }}"
+      ansible.builtin.command: "ceph config set mgr mgr/dashboard/standby_behaviour {{ ceph_dashboard_standby_behaviour }}"  # noqa 301
+      environment:
+        INTERACTIVE: false
+
+    - name: "Set mgr/dashboard/standby_error_status_code to {{ ceph_dashboard_standby_error_status_code }}"
+      ansible.builtin.command: "ceph config set mgr mgr/dashboard/standby_error_status_code {{ ceph_dashboard_standby_error_status_code }}"  # noqa 301
+      environment:
+        INTERACTIVE: false
+
+    - name: Enable the ceph dashboard
+      ansible.builtin.command: ceph mgr module enable dashboard  # noqa 301
+      environment:
+        INTERACTIVE: false
+
+    - name: Write ceph_dashboard_password to temporary file
+      ansible.builtin.copy:
+        content: "{{ ceph_dashboard_password }}"
+        dest: /opt/cephclient/data/ceph_dashboard_password
+        mode: 0644
+      no_log: true
+
+    - name: Create admin user
+      ansible.builtin.command: "ceph dashboard ac-user-create {{ ceph_dashboard_username }} administrator -i /data/ceph_dashboard_password"  # noqa 301
+      register: result
+      changed_when: "'already exists' not in result.stderr"
+      failed_when: ( result.rc not in [ 0, 17 ] )
+      environment:
+        INTERACTIVE: false
+
+    - name: Remove temporary file for ceph_dashboard_password
+      ansible.builtin.file:
+        path: /opt/cephclient/data/ceph_dashboard_password
+        state: absent
+      when: tempfile.path is defined
+
+- name: Restart ceph manager services
+  hosts: "{{ mgr_group_name|default('ceph-mgr') }}"
+  gather_facts: false
+  serial: 1
+  strategy: "{{ osism_strategy|default('linear') }}"
+
+  tasks:
+    - name: Restart ceph manager service
+      become: true
+      ansible.builtin.service:
+        name: "ceph-mgr@{{ inventory_hostname_short }}"
+        state: restarted

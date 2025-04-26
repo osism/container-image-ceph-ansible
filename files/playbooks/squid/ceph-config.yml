@@ -1,0 +1,12 @@
+---
+- name: Apply role ceph-config
+  hosts: "{{ ceph_group_name|default('ceph') }}"
+  become: true
+  serial: '{{ ceph_serial|default("0") }}'
+  strategy: "{{ osism_strategy|default('linear') }}"
+
+  roles:
+    - ceph-defaults
+    - ceph-facts
+    - ceph-handler
+    - ceph-config

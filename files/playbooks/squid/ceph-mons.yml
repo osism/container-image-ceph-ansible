@@ -1,0 +1,22 @@
+---
+- name: Apply role ceph-mon
+  hosts: "{{ mon_group_name|default('ceph-mon') }}"
+  become: true
+  serial: '{{ ceph_serial|default("0") }}'
+  strategy: "{{ osism_strategy|default('linear') }}"
+
+  vars:
+    ceph_handler_crash_restart: false
+    ceph_handler_mdss_restart: false
+    ceph_handler_mgrs_restart: false
+    ceph_handler_osds_restart: false
+    ceph_handler_rbdmirrors_restart: false
+    ceph_handler_rgws_restart: false
+
+  roles:
+    - ceph-defaults
+    - ceph-facts
+    - ceph-handler
+    - ceph-container-common
+    - ceph-config
+    - ceph-mon

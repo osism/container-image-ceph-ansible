@@ -1,0 +1,14 @@
+---
+- name: Apply role ceph-client
+  hosts: "{{ client_group_name|default('ceph-client') }}"
+  become: true
+  serial: '{{ ceph_serial|default("0") }}'
+  strategy: "{{ osism_strategy|default('linear') }}"
+
+  roles:
+    - ceph-defaults
+    - ceph-facts
+    - ceph-handler
+    - ceph-container-common
+    - ceph-config
+    - ceph-client

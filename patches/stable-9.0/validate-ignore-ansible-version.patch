@@ -1,0 +1,14 @@
+--- a/roles/ceph-validate/tasks/check_system.yml
++++ b/roles/ceph-validate/tasks/check_system.yml
+@@ -4,11 +4,6 @@
+     msg: "Ansible version must be >= 2.x, please update!"
+   when: ansible_version.major|int < 2
+
+-- name: Fail on unsupported ansible version
+-  ansible.builtin.fail:
+-    msg: "Ansible version must be either 2.15 or 2.16!"
+-  when: ansible_version.minor|int not in [15, 16]
+-
+ - name: Fail on unsupported system
+   ansible.builtin.fail:
+     msg: "System not supported {{ ansible_facts['system'] }}"
