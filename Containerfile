@@ -157,6 +157,7 @@ if [ -e /repository/site-docker.yml.sample ]; then cp /repository/site-docker.ym
 if [ -e /repository/site-container.yml.sample ]; then cp /repository/site-container.yml.sample /ansible/ceph-site.ym; fi
 if [ -e /repository/dashboard.yml ]; then cp /repository/dashboard.yml /ansible/dashboard.yml; fi
 if [ -e /repository/module_utils ]; then cp -r /repository/module_utils /ansible; fi
+ln -s /ansible/ceph-rolling_update.yml /ansible/ceph-upgrade.yml
 
 # use our own purge playbooks
 rm -f /ansible/ceph-purge-*.yml
