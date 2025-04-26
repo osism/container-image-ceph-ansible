@@ -10,6 +10,9 @@ exclude_paths:
   - files/playbooks/reef/ceph-bootstrap-dashboard.yml
   - files/playbooks/reef/ceph-purge-cluster.yml
   - files/playbooks/reef/ceph-purge-storage-node.yml
+  - files/playbooks/squid/ceph-bootstrap-dashboard.yml
+  - files/playbooks/squid/ceph-purge-cluster.yml
+  - files/playbooks/squid/ceph-purge-storage-node.yml
   - files/playbooks/tasks/openstack_config.yml
 use_default_rules: true
 rulesdir:

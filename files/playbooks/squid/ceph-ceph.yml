@@ -1,0 +1,142 @@
+---
+- name: Prepare deployment of Ceph services
+  hosts: "{{ ceph_group_name|default('ceph') }}"
+  become: true
+  serial: '{{ ceph_serial|default("0") }}'
+  strategy: "{{ osism_strategy|default('linear') }}"
+
+  roles:
+    - ceph-defaults
+    - ceph-facts
+    - ceph-handler
+    - ceph-container-common
+    - ceph-config
+
+- name: Apply role ceph-mon
+  hosts: "{{ mon_group_name|default('ceph-mon') }}"
+  become: true
+  serial: '{{ ceph_serial|default("0") }}'
+  strategy: "{{ osism_strategy|default('linear') }}"
+
+  vars:
+    ceph_handler_crash_restart: false
+    ceph_handler_mdss_restart: false
+    ceph_handler_mgrs_restart: false
+    ceph_handler_osds_restart: false
+    ceph_handler_rbdmirrors_restart: false
+    ceph_handler_rgws_restart: false
+
+  roles:
+    - ceph-defaults
+    - ceph-handler
+    - ceph-mon
+
+- name: Apply role ceph-mgr
+  hosts: "{{ mgr_group_name|default('ceph-mgr') }}"
+  become: true
+  serial: '{{ ceph_serial|default("0") }}'
+  strategy: "{{ osism_strategy|default('linear') }}"
+
+  vars:
+    ceph_handler_crash_restart: false
+    ceph_handler_mdss_restart: false
+    ceph_handler_mons_restart: false
+    ceph_handler_osds_restart: false
+    ceph_handler_rbdmirrors_restart: false
+    ceph_handler_rgws_restart: false
+
+  roles:
+    - ceph-defaults
+    - ceph-handler
+    - ceph-mgr
+
+- name: Apply role ceph-osd
+  hosts: "{{ osd_group_name|default('ceph-osd') }}"
+  become: true
+  serial: '{{ ceph_serial|default("0") }}'
+  strategy: "{{ osism_strategy|default('linear') }}"
+
+  vars:
+    ceph_handler_crash_restart: false
+    ceph_handler_mdss_restart: false
+    ceph_handler_mgrs_restart: false
+    ceph_handler_mons_restart: false
+    ceph_handler_rbdmirrors_restart: false
+    ceph_handler_rgws_restart: false
+
+  roles:
+    - ceph-defaults
+    - ceph-handler
+    - ceph-osd
+
+- name: Apply role ceph-crash
+  hosts: "{{ ceph_group_name|default('ceph') }}"
+  become: true
+  serial: '{{ ceph_serial|default("0") }}'
+  strategy: "{{ osism_strategy|default('linear') }}"
+
+  vars:
+    ceph_handler_mdss_restart: false
+    ceph_handler_mgrs_restart: false
+    ceph_handler_mons_restart: false
+    ceph_handler_osds_restart: false
+    ceph_handler_rbdmirrors_restart: false
+    ceph_handler_rgws_restart: false
+
+  roles:
+    - ceph-defaults
+    - ceph-handler
+
+  tasks:
+    - name: Import role ceph-crash
+      ansible.builtin.import_role:
+        name: ceph-crash
+      when: enable_ceph_crash | default(true) | bool
+
+- name: Apply role ceph-mds
+  hosts: "{{ mds_group_name|default('ceph-mds') }}"
+  become: true
+  serial: '{{ ceph_serial|default("0") }}'
+  strategy: "{{ osism_strategy|default('linear') }}"
+
+  vars:
+    ceph_handler_crash_restart: false
+    ceph_handler_mgrs_restart: false
+    ceph_handler_mons_restart: false
+    ceph_handler_osds_restart: false
+    ceph_handler_rbdmirrors_restart: false
+    ceph_handler_rgws_restart: false
+
+  roles:
+    - ceph-defaults
+    - ceph-handler
+
+  tasks:
+    - name: Import role ceph-mds
+      ansible.builtin.import_role:
+        name: ceph-mds
+      when: enable_ceph_mds | default(true) | bool
+
+- name: Apply role ceph-rgw
+  hosts: "{{ rgw_group_name|default('ceph-rgw') }}"
+  become: true
+  serial: '{{ ceph_serial|default("0") }}'
+  strategy: "{{ osism_strategy|default('linear') }}"
+
+  vars:
+    ceph_handler_crash_restart: false
+    ceph_handler_mdss_restart: false
+    ceph_handler_mgrs_restart: false
+    ceph_handler_mons_restart: false
+    ceph_handler_osds_restart: false
+    ceph_handler_rbdmirrors_restart: false
+
+  roles:
+    - ceph-defaults
+    - ceph-handler
+
+  tasks:
+    - name: Import role ceph-rgw
+      ansible.builtin.import_role:
+        name: ceph-rgw
+      when: enable_ceph_rgw | default(true) | bool

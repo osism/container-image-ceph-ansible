@@ -1,0 +1,31 @@
+--- a/infrastructure-playbooks/shrink-osd.yml
++++ b/infrastructure-playbooks/shrink-osd.yml
+@@ -13,8 +13,8 @@
+
+ - name: Gather facts and check the init system
+   hosts:
+-    - mons
+-    - osds
++    - "{{ mon_group_name|default('ceph-mon') }}"
++    - "{{ osd_group_name|default('ceph-osd') }}"
+
+   become: true
+   tasks:
+@@ -23,16 +23,13 @@
+         msg: "gather facts on all Ceph hosts for following reference"
+
+ - name: Confirm whether user really meant to remove osd(s) from the cluster
+-  hosts: mons[0]
++  hosts: "{{ groups[mon_group_name|default('ceph-mon')][0] }}"
+   become: true
+   vars_prompt:
+     - name: ireallymeanit  # noqa: name[casing]
+       prompt: Are you sure you want to shrink the cluster?
+       default: 'no'
+       private: false
+-  vars:
+-    mon_group_name: mons
+-    osd_group_name: osds
+
+   pre_tasks:
+     - name: Exit playbook, if user did not mean to shrink cluster

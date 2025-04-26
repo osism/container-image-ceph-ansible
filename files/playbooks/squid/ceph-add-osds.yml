@@ -1,0 +1,6 @@
+---
+- name: Run ceph-osds play
+  ansible.builtin.import_playbook: ceph-osds.yml
+  vars:
+    ceph_handler_osds_restart: false
+    openstack_config: false
