@@ -42,8 +42,8 @@
 
           # NOTE: For builds for a specific release, the Ceph version is taken from the release repository.
           if [[ $version != "latest" ]]; then
-              filename=$(curl -L https://raw.githubusercontent.com/osism/release/main/$version/ceph.yml)
-              ceph_version=$(curl -L https://raw.githubusercontent.com/osism/release/main/$version/$filename | grep "ceph_version:" | awk -F': ' '{ print $2 }')
+              filename=$(curl -L https://raw.githubusercontent.com/osism/release/main/latest/ceph.yml)
+              ceph_version=$(curl -L https://raw.githubusercontent.com/osism/release/main/latest/$filename | grep "ceph_version:" | awk -F': ' '{ print $2 }')
           fi
 
           . defaults/${ceph_version}.sh
