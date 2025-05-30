@@ -79,7 +79,6 @@
           if [[ $version != "latest" ]]; then
               version="${version:1:${#version}-1}"
           fi
-
           {% endraw %}
 
           if [[ -n $registry ]]; then
@@ -106,10 +105,6 @@
           set -o pipefail
           set -x
 
-          if [[ $version == "latest" ]]; then
-              version=$ceph_version
-          fi
-
           if [[ -n $registry ]]; then
               repository="$registry/$repository"
           fi
@@ -117,6 +112,8 @@
           {% raw %}
           if [[ $version != "latest" ]]; then
               version="${version:1:${#version}-1}"
+          else
+              version=$ceph_version
           fi
           {% endraw %}
 
