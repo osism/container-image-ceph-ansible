@@ -34,12 +34,6 @@
           created=$(date --rfc-3339=ns)
           revision=$(git rev-parse --short HEAD)
 
-          {% raw %}
-          if [[ $version != "latest" ]]; then
-              version="${version:1:${#version}-1}"
-          fi
-          {% endraw %}
-
           # NOTE: For builds for a specific release, the Ceph version is taken from the release repository.
           if [[ $version != "latest" ]]; then
               filename=$(curl -L https://raw.githubusercontent.com/osism/release/main/latest/ceph.yml)
@@ -81,13 +75,12 @@
 
           revision=$(git rev-parse --short HEAD)
 
-          # NOTE: For builds for a specific release, the Ceph version is taken from the release repository.
+          {% raw %}
           if [[ $version != "latest" ]]; then
-              filename=$(curl -L https://raw.githubusercontent.com/osism/release/main/latest/ceph.yml)
-              ceph_version=$(curl -L https://raw.githubusercontent.com/osism/release/main/latest/$filename | grep "ceph_version:" | awk -F': ' '{ print $2 }')
+              version="${version:1:${#version}-1}"
           fi
 
-          . defaults/${ceph_version}.sh
+          {% endraw %}
 
           if [[ -n $registry ]]; then
               repository="$registry/$repository"
