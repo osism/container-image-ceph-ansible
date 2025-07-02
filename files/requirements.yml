@@ -8,7 +8,7 @@ collections:
     source: https://galaxy.ansible.com
   # NOT: pin ansible.netcommon version because of osism/testbed#1236
   - name: ansible.netcommon
-    version: "2.6.1"
+    version: "8.0.1"
     source: https://galaxy.ansible.com
   - name: https://github.com/openstack/ansible-config_template
     version: 2.0.0
