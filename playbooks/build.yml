@@ -107,21 +107,17 @@
           set -o pipefail
           set -x
 
-          {% raw %}
-          if [[ $version != "latest" ]]; then
-              version="${version:1:${#version}-1}"
-          fi
-          {% endraw %}
-
           if [[ -n $registry ]]; then
               repository="$registry/$repository"
           fi
 
-          if [[ $version == "latest" ]]; then
-              tag=$repository:$ceph_version
+          {% raw %}
+          if [[ $version != "latest" ]]; then
+              version="${version:1:${#version}-1}"
           else
-              tag=$repository:$version
+              version=$ceph_version
           fi
+          {% endraw %}
 
           curl -O -L "https://github.com/sigstore/cosign/releases/latest/download/cosign-linux-amd64"
           chmod +x cosign-linux-amd64
