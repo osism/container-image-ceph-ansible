@@ -1,0 +1,26 @@
+--- a/infrastructure-playbooks/rolling_update.yml
++++ b/infrastructure-playbooks/rolling_update.yml
+@@ -884,7 +884,7 @@
+         masked: true
+       ignore_errors: true
+
+-    - name: Stop ceph rgw
++    - name: Stop ceph rgw (pt. 1)
+       ansible.builtin.systemd:
+         name: ceph-radosgw@rgw.{{ rgw_zone }}.{{ ansible_facts['hostname'] }}.{{ item.instance_name }}
+         state: stopped
+@@ -892,6 +892,14 @@
+         masked: true
+       with_items: "{{ rgw_instances }}"
+
++    - name: Stop ceph rgw (pt. 2)
++      ansible.builtin.systemd:
++        name: ceph-radosgw@rgw.{{ ansible_facts['hostname'] }}.{{ item.instance_name }}
++        state: stopped
++        enabled: false
++        masked: true
++      with_items: "{{ rgw_instances }}"
++
+     - name: Import ceph-handler role
+       ansible.builtin.import_role:
+         name: ceph-handler
