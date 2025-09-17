@@ -1,0 +1,40 @@
+From 39cb2416193921a5c38c8b61007b7d264901de18 Mon Sep 17 00:00:00 2001
+From: Jan Horstmann <horstmann@osism.tech>
+Date: Wed, 17 Sep 2025 13:46:21 +0200
+Subject: [PATCH] Fix RGW rolling upgrade
+
+The RGW zone has been added to the radosgw systemd unit name in [1].
+On upgrade stop and mask units using the old name.
+
+[1]
+https://github.com/ceph/ceph-ansible/commit/faae48d75b9f5386dea2f877282a9649ab3941a3
+
+Signed-off-by: Jan Horstmann <horstmann@osism.tech>
+---
+ infrastructure-playbooks/rolling_update.yml | 10 +++++++++-
+ 1 file changed, 9 insertions(+), 1 deletion(-)
+
+diff --git a/infrastructure-playbooks/rolling_update.yml b/infrastructure-playbooks/rolling_update.yml
+index 839609a72..1498ac240 100644
+--- a/infrastructure-playbooks/rolling_update.yml
++++ b/infrastructure-playbooks/rolling_update.yml
+@@ -878,7 +878,15 @@
+ 
+     - name: Stop ceph rgw when upgrading from stable-3.2  # noqa: ignore-errors
+       ansible.builtin.systemd:
+-        name: ceph-radosgw@rgw.{{ rgw_zone }}.{{ ansible_facts['hostname'] }}
++        name: ceph-radosgw@rgw.{{ ansible_facts['hostname'] }}
++        state: stopped
++        enabled: false
++        masked: true
++      ignore_errors: true
++
++    - name: Stop ceph rgw when upgrading from stable-7.0  # noqa: ignore-errors
++      ansible.builtin.systemd:
++        name: ceph-radosgw@rgw.{{ ansible_facts['hostname'] }}.{{ item.instance_name }}
+         state: stopped
+         enabled: false
+         masked: true
+-- 
+2.51.0
+
