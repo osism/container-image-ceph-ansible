@@ -309,6 +309,14 @@
       failed_when: false
       with_items: "{{ rgw_instances }}"
 
+    - name: stop ceph rgws with zone with systemd
+      service:
+        name: "ceph-radosgw@rgw.{{ rgw_zone }}.{{ ansible_facts['hostname'] }}.{{ item.instance_name }}"
+        state: stopped
+        enabled: no
+      failed_when: false
+      with_items: "{{ rgw_instances }}"
+
     - name: remove ceph rgw service
       file:
         path: /etc/systemd/system/ceph-radosgw{{ item }}
