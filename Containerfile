@@ -34,7 +34,7 @@ COPY --link files/ara.env /ansible/ara.env
 COPY --link files/src /src
 
 ADD https://github.com/mitogen-hq/mitogen/archive/refs/tags/v0.3.22.tar.gz /mitogen.tar.gz
-COPY --from=ghcr.io/astral-sh/uv:0.9.7 /uv /usr/local/bin/uv
+COPY --from=ghcr.io/astral-sh/uv:0.9.11 /uv /usr/local/bin/uv
 
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
