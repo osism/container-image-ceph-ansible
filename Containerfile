@@ -94,7 +94,6 @@ cp /generics/inventory/51-ceph /ansible/inventory.generics/51-ceph
 mkdir -p /ansible/galaxy /ansible/group_vars/all
 python3 /src/render-python-requirements.py
 python3 /src/render-versions.py
-mkdir -p /ansible/group_vars
 
 # install required python packages
 uv pip install --no-cache --system -r /requirements.txt
