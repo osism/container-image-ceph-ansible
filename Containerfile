@@ -78,13 +78,11 @@ git clone https://github.com/osism/release /release
 
 # run preparations
 git clone https://github.com/osism/ansible-playbooks /playbooks
-git clone https://github.com/osism/defaults /defaults
 git clone https://github.com/osism/cfg-generics /generics
 
 if [ "$VERSION" != "latest" ]; then
   ( cd /release || exit; git fetch --all --force; git checkout "ceph-ansible-$VERSION" )
   ( cd /playbooks || exit; git fetch --all --force; git checkout "$(yq -M -r .playbooks_version "/release/latest/ceph.yml")" )
-  ( cd /defaults || exit; git fetch --all --force; git checkout "$(yq -M -r .defaults_version "/release/latest/ceph.yml")" )
   ( cd /generics || exit; git fetch --all --force; git checkout "$(yq -M -r .generics_version "/release/latest/ceph.yml")" )
 fi
 
@@ -97,8 +95,6 @@ mkdir -p /ansible/galaxy /ansible/group_vars/all
 python3 /src/render-python-requirements.py
 python3 /src/render-versions.py
 mkdir -p /ansible/group_vars
-cp -r /defaults/* /ansible/group_vars/
-rm -f /ansible/group_vars/LICENSE /ansible/group_vars/README.md
 
 # install required python packages
 uv pip install --no-cache --system -r /requirements.txt
