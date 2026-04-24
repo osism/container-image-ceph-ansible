@@ -78,7 +78,7 @@ git clone https://github.com/osism/release /release
 
 # run preparations
 git clone https://github.com/osism/ansible-playbooks /playbooks
-git clone https://github.com/osism/cfg-generics /generics
+git clone https://github.com/osism/generics /generics
 
 if [ "$VERSION" != "latest" ]; then
   ( cd /release || exit; git fetch --all --force; git checkout "ceph-ansible-$VERSION" )
