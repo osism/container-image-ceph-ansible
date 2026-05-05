@@ -12,7 +12,7 @@
        rescue:
          - name: Import ceph-defaults role
            ansible.builtin.import_role:
-@@ -423,6 +428,37 @@
+@@ -423,6 +428,55 @@
            when: inventory_hostname in groups[mgr_group_name] | default([])
                  or groups[mgr_group_name] | default([]) | length == 0
 
@@ -39,12 +39,30 @@
 +          failed_when: false
 +          when: containerized_deployment | bool
 +
++        - name: Container | diagnostics on quorum failure - mon admin socket status
++          ansible.builtin.command:
++            argv:
++              - "{{ container_binary }}"
++              - exec
++              - "ceph-mon-{{ ansible_facts['hostname'] }}"
++              - ceph
++              - daemon
++              - "mon.{{ ansible_facts['hostname'] }}"
++              - mon_status
++          register: _mon_admin_status
++          changed_when: false
++          failed_when: false
++          when: containerized_deployment | bool
++
 +        - name: Container | show terminal state on quorum failure
 +          ansible.builtin.debug:
 +            msg:
 +              - "ports (3300/6789): {{ _mon_ss_final.stdout_lines | default([]) | select('search', '3300|6789') | list }}"
 +              - "container logs (stdout): {{ _mon_logs_final.stdout_lines | default([]) }}"
 +              - "container logs (stderr): {{ _mon_logs_final.stderr_lines | default([]) }}"
++              - "mon status (admin socket): {{ _mon_admin_status.stdout_lines | default([]) }}"
++              - "mon status rc: {{ _mon_admin_status.rc | default('') }}"
++              - "mon status stderr: {{ _mon_admin_status.stderr_lines | default([]) }}"
 +          when: containerized_deployment | bool
 +
          - name: Stop the playbook execution
