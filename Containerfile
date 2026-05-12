@@ -137,7 +137,7 @@ rm /mitogen.tar.gz
 # prepare project repository
 PROJECT_VERSION=$(grep "ceph_ansible_version:" /release/latest/ceph-$CEPH_VERSION.yml | awk -F': ' '{ print $2 }')
 git clone -b $PROJECT_VERSION https://github.com/ceph/ceph-ansible /repository
-for patchfile in $(find /patches/$PROJECT_VERSION -name "*.patch"); do
+for patchfile in $(find /patches/$PROJECT_VERSION -name "*.patch" | LC_ALL=C sort); do
   echo $patchfile;
   ( cd /repository && patch --forward --batch -p1 --dry-run ) < $patchfile || exit 1;
   ( cd /repository && patch --forward --batch -p1 ) < $patchfile;
