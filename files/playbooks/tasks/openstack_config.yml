@@ -67,3 +67,45 @@
   when:
     - cephx | bool
     - openstack_config | bool
+
+- name: Assert ceph_require_min_compat_client is a known release
+  ansible.builtin.assert:
+    that:
+      - ceph_require_min_compat_client in ceph_min_compat_client_order
+    fail_msg: >-
+      ceph_require_min_compat_client '{{ ceph_require_min_compat_client }}' is not in
+      ceph_min_compat_client_order. Add the release to the map or set
+      ceph_require_min_compat_client to '' to skip.
+  when: ceph_require_min_compat_client | default('', true) | string | length > 0
+
+- name: Gather facts for the first Ceph monitor
+  ansible.builtin.setup:
+    gather_subset:
+      - min
+  delegate_to: "{{ groups[mon_group_name][0] }}"
+  delegate_facts: true
+  when: ceph_require_min_compat_client | default('', true) | string | length > 0
+
+- name: Get Ceph OSD map
+  ansible.builtin.command: "{{ container_binary }} exec ceph-mon-{{ hostvars[groups[mon_group_name][0]]['ansible_facts']['hostname'] }} ceph osd dump --format json"
+  delegate_to: "{{ groups[mon_group_name][0] }}"
+  register: _ceph_osd_dump
+  changed_when: false
+  when: ceph_require_min_compat_client | default('', true) | string | length > 0
+
+- name: Evaluate whether require-min-compat-client needs raising
+  ansible.builtin.set_fact:
+    _ceph_set_min_compat_client: >-
+      {{ _current in ceph_min_compat_client_order
+         and (ceph_min_compat_client_order[_current] | int)
+             < (ceph_min_compat_client_order[ceph_require_min_compat_client] | int) }}
+  vars:
+    _current: "{{ (_ceph_osd_dump.stdout | default('{}') | from_json).require_min_compat_client | default('luminous') }}"
+  when: ceph_require_min_compat_client | default('', true) | string | length > 0
+
+- name: Set Ceph minimum compatible client
+  ansible.builtin.command: "{{ container_binary }} exec ceph-mon-{{ hostvars[groups[mon_group_name][0]]['ansible_facts']['hostname'] }} ceph osd set-require-min-compat-client {{ ceph_require_min_compat_client }}"
+  delegate_to: "{{ groups[mon_group_name][0] }}"
+  when: >-
+    ceph_require_min_compat_client | default('', true) | string | length > 0
+    and (_ceph_set_min_compat_client | default(false) | bool)
