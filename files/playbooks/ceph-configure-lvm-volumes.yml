@@ -19,7 +19,7 @@
       delegate_to: "{{ groups['manager'][0] }}"
 
     - name: Ceph configure LVM
-      block:  # noqa: osism-fqcn
+      block:
         - name: Get initial list of available block devices
           ansible.builtin.set_fact:
             block_devices: "{{ hostvars[inventory_hostname].ansible_devices }}"
