@@ -15,8 +15,6 @@ exclude_paths:
   - files/playbooks/squid/ceph-purge-storage-node.yml
   - files/playbooks/tasks/openstack_config.yml
 use_default_rules: true
-rulesdir:
-  - ./.ansible-lint-rules/
 mock_roles:
   - ceph-client
   - ceph-config
