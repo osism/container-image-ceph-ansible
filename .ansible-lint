@@ -14,6 +14,7 @@ exclude_paths:
   - files/playbooks/squid/ceph-purge-cluster.yml
   - files/playbooks/squid/ceph-purge-storage-node.yml
   - files/playbooks/tasks/openstack_config.yml
+  - files/playbooks/tasks/openstack_config_pre_squid.yml
 use_default_rules: true
 mock_roles:
   - ceph-client

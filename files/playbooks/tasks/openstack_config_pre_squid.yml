@@ -39,7 +39,7 @@
       no_log: "{{ no_log_on_ceph_key_tasks }}"
 
     - name: get keys from monitors
-      ceph_key_info:
+      ceph_key:
         name: "{{ item.name }}"
         cluster: "{{ cluster }}"
         output_format: plain
