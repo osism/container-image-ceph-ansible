@@ -1,0 +1,112 @@
+--- a/infrastructure-playbooks/rolling_update.yml
++++ b/infrastructure-playbooks/rolling_update.yml
+@@ -325,8 +325,52 @@
+           delegate_to: "{{ groups[mon_group_name][0] }}"
+           delegate_facts: true
+
++        - name: Non container | select a stable mon to read the monmap from
++          ansible.builtin.set_fact:
++            _ceph_quorum_read_host: "{{ ((groups[mon_group_name | default('mons')] | difference([inventory_hostname])) + [groups[mon_group_name | default('mons')][0]]) | first }}"
++          when: not containerized_deployment | bool
++
++        - name: Non container | read mon monmap from the stable peer
++          ansible.builtin.command: >
++            ceph --cluster "{{ cluster }}"
++            daemon mon.{{ hostvars[_ceph_quorum_read_host]['ansible_facts']['hostname'] }} mon_status
++          register: _monmap_read
++          delegate_to: "{{ _ceph_quorum_read_host }}"
++          changed_when: false
++          failed_when: false
++          ignore_unreachable: true
++          when: not containerized_deployment | bool
++
++        - name: Non container | initialize quorum probe address to the configured value
++          ansible.builtin.set_fact:
++            _mon0_probe_addr: "{{ _monitor_addresses[groups[mon_group_name | default('mons')][0]] }}"
++          when: not containerized_deployment | bool
++
++        - name: Non container | derive quorum probe address from the live monmap
++          when: not containerized_deployment | bool
++          block:
++            - name: Non container | set quorum probe address from monmap
++              ansible.builtin.set_fact:
++                _mon0_probe_addr: >-
++                  {{ (_monmap_read.stdout | from_json).monmap.mons
++                     | selectattr('name', 'equalto', hostvars[groups[mon_group_name | default('mons')][0]]['ansible_facts']['hostname'])
++                     | map(attribute='public_addr')
++                     | map('regex_replace', ':[0-9]+/[0-9]+$', '')
++                     | reject('equalto', '')
++                     | first }}
++              when: _monmap_read.rc | default(1) == 0
++          rescue:
++            - name: Non container | keep configured quorum probe address
++              ansible.builtin.debug:
++                msg: "monmap read/parse failed; using fallback {{ _mon0_probe_addr }}"
++
++        - name: Non container | show the quorum probe address
++          ansible.builtin.debug:
++            msg: "mon quorum probe: -m {{ _mon0_probe_addr }} (monmap read from {{ _ceph_quorum_read_host }})"
++          when: not containerized_deployment | bool
++
+         - name: Non container | waiting for the monitor to join the quorum...
+-          ansible.builtin.command: ceph --cluster "{{ cluster }}" -m "{{ _monitor_addresses[groups[mon_group_name|default('mons')][0]] }}" quorum_status --format json
++          ansible.builtin.command: ceph --cluster "{{ cluster }}" -m "{{ _mon0_probe_addr }}" quorum_status --format json
+           register: ceph_health_raw
+           until:
+             - ceph_health_raw.rc == 0
+@@ -393,9 +437,54 @@
+               - "container logs (stderr): {{ _mon_logs.stderr_lines | default([]) }}"
+           when: containerized_deployment | bool
+
++        - name: Container | select a stable mon to read the monmap from
++          ansible.builtin.set_fact:
++            _ceph_quorum_read_host: "{{ ((groups[mon_group_name | default('mons')] | difference([inventory_hostname])) + [groups[mon_group_name | default('mons')][0]]) | first }}"
++          when: containerized_deployment | bool
++
++        - name: Container | read mon monmap from the stable peer
++          ansible.builtin.command: >
++            {{ container_binary }} exec ceph-mon-{{ hostvars[_ceph_quorum_read_host]['ansible_facts']['hostname'] }}
++            ceph --cluster "{{ cluster }}"
++            daemon mon.{{ hostvars[_ceph_quorum_read_host]['ansible_facts']['hostname'] }} mon_status
++          register: _monmap_read
++          delegate_to: "{{ _ceph_quorum_read_host }}"
++          changed_when: false
++          failed_when: false
++          ignore_unreachable: true
++          when: containerized_deployment | bool
++
++        - name: Container | initialize quorum probe address to the configured value
++          ansible.builtin.set_fact:
++            _mon0_probe_addr: "{{ _monitor_addresses[groups[mon_group_name | default('mons')][0]] }}"
++          when: containerized_deployment | bool
++
++        - name: Container | derive quorum probe address from the live monmap
++          when: containerized_deployment | bool
++          block:
++            - name: Container | set quorum probe address from monmap
++              ansible.builtin.set_fact:
++                _mon0_probe_addr: >-
++                  {{ (_monmap_read.stdout | from_json).monmap.mons
++                     | selectattr('name', 'equalto', hostvars[groups[mon_group_name | default('mons')][0]]['ansible_facts']['hostname'])
++                     | map(attribute='public_addr')
++                     | map('regex_replace', ':[0-9]+/[0-9]+$', '')
++                     | reject('equalto', '')
++                     | first }}
++              when: _monmap_read.rc | default(1) == 0
++          rescue:
++            - name: Container | keep configured quorum probe address
++              ansible.builtin.debug:
++                msg: "monmap read/parse failed; using fallback {{ _mon0_probe_addr }}"
++
++        - name: Container | show the quorum probe address
++          ansible.builtin.debug:
++            msg: "mon quorum probe: -m {{ _mon0_probe_addr }} (monmap read from {{ _ceph_quorum_read_host }})"
++          when: containerized_deployment | bool
++
+         - name: Container | waiting for the containerized monitor to join the quorum...
+           ansible.builtin.command: >
+-            {{ container_binary }} exec ceph-mon-{{ ansible_facts['hostname'] }} ceph --cluster "{{ cluster }}" -m "{{ _monitor_addresses[groups[mon_group_name|default('mons')][0]] }}" quorum_status --format json
++            {{ container_binary }} exec ceph-mon-{{ ansible_facts['hostname'] }} ceph --cluster "{{ cluster }}" -m "{{ _mon0_probe_addr }}" quorum_status --format json
+           register: ceph_health_raw
+           until:
+             - ceph_health_raw.rc == 0
