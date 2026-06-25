@@ -1,0 +1,70 @@
+--- a/infrastructure-playbooks/rolling_update.yml
++++ b/infrastructure-playbooks/rolling_update.yml
+@@ -377,6 +377,11 @@
+           delay: "{{ health_mon_check_delay }}"
+           changed_when: false
+           when: containerized_deployment | bool
++
++        - name: Container | quorum check result - attempt count
++          ansible.builtin.debug:
++            msg: "Quorum reached after {{ ceph_health_raw.attempts }} attempt(s) ({{ health_mon_check_retries }} max)"
++          when: containerized_deployment | bool
+       rescue:
+         - name: Import ceph-defaults role
+           ansible.builtin.import_role:
+@@ -395,6 +400,55 @@
+           when: inventory_hostname in groups[mgr_group_name] | default([])
+                 or groups[mgr_group_name] | default([]) | length == 0
+ 
++        - name: Container | diagnostics on quorum failure - listening ports
++          ansible.builtin.command:
++            argv:
++              - ss
++              - -lntp
++          register: _mon_ss_final
++          changed_when: false
++          failed_when: false
++          when: containerized_deployment | bool
++
++        - name: Container | diagnostics on quorum failure - container logs
++          ansible.builtin.command:
++            argv:
++              - "{{ container_binary }}"
++              - logs
++              - "--tail=50"
++              - "--timestamps"
++              - "ceph-mon-{{ ansible_facts['hostname'] }}"
++          register: _mon_logs_final
++          changed_when: false
++          failed_when: false
++          when: containerized_deployment | bool
++
++        - name: Container | diagnostics on quorum failure - mon admin socket status
++          ansible.builtin.command:
++            argv:
++              - "{{ container_binary }}"
++              - exec
++              - "ceph-mon-{{ ansible_facts['hostname'] }}"
++              - ceph
++              - daemon
++              - "mon.{{ ansible_facts['hostname'] }}"
++              - mon_status
++          register: _mon_admin_status
++          changed_when: false
++          failed_when: false
++          when: containerized_deployment | bool
++
++        - name: Container | show terminal state on quorum failure
++          ansible.builtin.debug:
++            msg:
++              - "ports (3300/6789): {{ _mon_ss_final.stdout_lines | default([]) | select('search', '3300|6789') | list }}"
++              - "container logs (stdout): {{ _mon_logs_final.stdout_lines | default([]) }}"
++              - "container logs (stderr): {{ _mon_logs_final.stderr_lines | default([]) }}"
++              - "mon status (admin socket): {{ _mon_admin_status.stdout_lines | default([]) }}"
++              - "mon status rc: {{ _mon_admin_status.rc | default('') }}"
++              - "mon status stderr: {{ _mon_admin_status.stderr_lines | default([]) }}"
++          when: containerized_deployment | bool
++
+         - name: Stop the playbook execution
+           ansible.builtin.fail:
+             msg: "There was an error during monitor upgrade. Please, check the previous task results."

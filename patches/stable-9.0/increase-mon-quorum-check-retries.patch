@@ -1,0 +1,20 @@
+--- a/infrastructure-playbooks/rolling_update.yml
++++ b/infrastructure-playbooks/rolling_update.yml
+@@ -138,7 +138,7 @@
+ - name: Upgrade ceph mon cluster
+   tags: mons
+   vars:
+-    health_mon_check_retries: 5
++    health_mon_check_retries: 10
+     health_mon_check_delay: 15
+     upgrade_ceph_packages: true
+   hosts: "{{ mon_group_name|default('mons') }}"
+@@ -360,7 +360,7 @@
+ 
+ - name: Upgrade ceph mgr nodes when implicitly collocated on monitors
+   vars:
+-    health_mon_check_retries: 5
++    health_mon_check_retries: 10
+     health_mon_check_delay: 15
+     upgrade_ceph_packages: true
+   hosts: "{{ mon_group_name|default('mons') }}"

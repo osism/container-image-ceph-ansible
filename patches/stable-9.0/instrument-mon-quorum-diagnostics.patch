@@ -1,0 +1,65 @@
+--- a/infrastructure-playbooks/rolling_update.yml
++++ b/infrastructure-playbooks/rolling_update.yml
+@@ -309,6 +309,62 @@
+           changed_when: false
+           when: not containerized_deployment | bool
+ 
++        - name: Container | diagnostics before quorum check - container state
++          ansible.builtin.command:
++            argv:
++              - "{{ container_binary }}"
++              - inspect
++              - "ceph-mon-{{ ansible_facts['hostname'] }}"
++              - "--format"
++              - "{% raw %}{{.State.Status}} started={{.State.StartedAt}}{% endraw %}"
++          register: _mon_inspect
++          changed_when: false
++          failed_when: false
++          when: containerized_deployment | bool
++
++        - name: Container | diagnostics before quorum check - recent logs
++          ansible.builtin.command:
++            argv:
++              - "{{ container_binary }}"
++              - logs
++              - "--tail=30"
++              - "--timestamps"
++              - "ceph-mon-{{ ansible_facts['hostname'] }}"
++          register: _mon_logs
++          changed_when: false
++          failed_when: false
++          when: containerized_deployment | bool
++
++        - name: Container | diagnostics before quorum check - listening ports
++          ansible.builtin.command:
++            argv:
++              - ss
++              - -lntp
++          register: _mon_ss
++          changed_when: false
++          failed_when: false
++          when: containerized_deployment | bool
++
++        - name: Container | diagnostics before quorum check - storage throughput
++          ansible.builtin.shell: |
++            bench=$(mktemp -p /var/lib/docker)
++            dd if=/dev/zero of="$bench" bs=1M count=128 oflag=direct conv=fsync
++            rm -f "$bench"
++          register: _storage_bench
++          changed_when: false
++          failed_when: false
++          when: containerized_deployment | bool
++
++        - name: Container | show diagnostics before quorum check
++          ansible.builtin.debug:
++            msg:
++              - "state: {{ _mon_inspect.stdout | default('inspect failed') }}"
++              - "ports (3300/6789): {{ _mon_ss.stdout_lines | default([]) | select('search', '3300|6789') | list }}"
++              - "storage throughput: {{ _storage_bench.stderr_lines | default([]) }}"
++              - "container logs (stdout): {{ _mon_logs.stdout_lines | default([]) }}"
++              - "container logs (stderr): {{ _mon_logs.stderr_lines | default([]) }}"
++          when: containerized_deployment | bool
++
+         - name: Container | waiting for the containerized monitor to join the quorum...
+           ansible.builtin.command: >
+             {{ container_binary }} exec ceph-mon-{{ ansible_facts['hostname'] }} ceph --cluster "{{ cluster }}" -m "{{ _monitor_addresses[groups[mon_group_name|default('mons')][0]] }}" quorum_status --format json
