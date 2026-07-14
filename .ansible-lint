@@ -38,8 +38,6 @@ mock_roles:
   - ceph-rgw
   - ceph-validate
   - ensure-docker
-mock_modules:
-  - ceph_volume
 skip_list:
   - fqcn-builtins
   - key-order[task] # disabled because we use our own rule
