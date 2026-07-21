@@ -7,7 +7,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 This file was started on May 30, 2025. Changes prior to this date are not included in the CHANGELOG.
 
-## [v0.20260319.0] - 2026-03-19
+## [v0.20260615.0] - 2026-06-15
+
+### Added
+- Set require-min-compat-client on the OSD map to avoid Glance image deletion conflicts with Nova ephemeral clones (osism/container-image-ceph-ansible#690)
+
+### Changed
+- Clone the renamed osism/generics repository instead of the old cfg-generics path (osism/container-image-ceph-ansible#679)
+- Add container, log, and admin-socket diagnostics around the mon quorum check in rolling_update to aid troubleshooting (osism/container-image-ceph-ansible#681)
+- Automatically add opened issues and pull requests to the project board (osism/container-image-ceph-ansible#684)
+- Drop obsolete osism-fqcn noqa workarounds on block constructs (osism/container-image-ceph-ansible#692)
+- Use the ceph_key_info module to retrieve keys on squid instead of ceph_key with state: info (osism/container-image-ceph-ansible#695)
+
+### Fixed
+- Raise health_mon_check_retries to 10 to prevent rolling upgrade failures on slow-storage mon nodes (osism/container-image-ceph-ansible#681)
+- Sort patch files before applying them to guarantee a deterministic, dependency-correct apply order (osism/container-image-ceph-ansible#686)
+
+### Removed
+- Drop redundant ara, docker, idna, and asn1crypto pins already covered by python-osism's dependencies (osism/container-image-ceph-ansible#689)
+- Drop the unused vendored ansible-lint rules directory and its config reference (osism/container-image-ceph-ansible#693)
+- Drop redundant paramiko and PyMySQL pins already covered by python-osism's dependencies (osism/container-image-ceph-ansible#697)
+
+### Dependencies
+- pymysql 1.1.2 → 1.1.3 (osism/container-image-ceph-ansible#682)
+- requests 2.32.5 → 2.34.2 (osism/container-image-ceph-ansible#676, osism/container-image-ceph-ansible#687)
+- cryptography 46.0.5 → 46.0.7 (osism/container-image-ceph-ansible#677)
+- ghcr.io/astral-sh/uv 0.10.10 → 0.11.21 (osism/container-image-ceph-ansible#674, osism/container-image-ceph-ansible#691, osism/container-image-ceph-ansible#694, osism/container-image-ceph-ansible#696)
+
+## [v0.20260322.0] - 2026-03-22
+
+### Added
+- Add CHANGELOG.md file to track notable changes (osism/container-image-ceph-ansible#675)
 
 ### Changed
 - Drop ansible_version validation patch for squid (osism/container-image-ceph-ansible#670)
@@ -19,6 +49,7 @@ This file was started on May 30, 2025. Changes prior to this date are not includ
 ### Dependencies
 - cryptography 46.0.4 → 46.0.5 (osism/container-image-ceph-ansible#669)
 - ghcr.io/astral-sh/uv 0.9.27 → 0.10.10 (osism/container-image-ceph-ansible#665)
+- ansible-pylibssh 1.3.0 → 1.4.0 (osism/container-image-ceph-ansible#671)
 
 ## [v0.20260129.0] - 2026-01-29
 
