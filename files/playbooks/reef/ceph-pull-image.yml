@@ -8,3 +8,7 @@
       community.docker.docker_image:
         name: "{{ ceph_docker_registry }}/{{ ceph_docker_image }}:{{ ceph_image_version }}"
         source: pull
+      register: result
+      until: result is success
+      retries: 3
+      delay: 30
