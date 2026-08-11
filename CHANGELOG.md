@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 This file was started on May 30, 2025. Changes prior to this date are not included in the CHANGELOG.
 
+## [v0.20260811.0] - 2026-08-11
+
+### Fixed
+- Fix project-board automation for fork PRs by switching to pull_request_target and scoping the token secret (osism/container-image-ceph-ansible#702)
+- Pin CycloneDX SBOM output to spec version 1.6 to fix DependencyTrack upload rejections (osism/container-image-ceph-ansible#703)
+- Harden the rolling-update mon quorum check to probe the live monmap instead of a recomputed address, fixing intermittent upgrade failures on reef and squid (osism/container-image-ceph-ansible#701)
+
+### Changed
+- Remove the dead ceph_volume mock_modules entry from the ansible-lint config (osism/container-image-ceph-ansible#705)
+
+### Dependencies
+- ghcr.io/astral-sh/uv 0.11.21 → 0.11.22 (osism/container-image-ceph-ansible#699)
+- cryptography 46.0.7 → 48.0.1 (osism/container-image-ceph-ansible#700)
+- yq 3.4.3 → 4.1.2 (osism/container-image-ceph-ansible#704)
+
 ## [v0.20260615.0] - 2026-06-15
 
 ### Added
