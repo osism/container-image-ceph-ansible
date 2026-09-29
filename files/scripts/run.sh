@@ -54,6 +54,28 @@ fi
 
 cd $ENVIRONMENTS_DIRECTORY/$SUB
 
+# Refuse to run against a Ceph cluster that cephadm manages, see
+# cephadm-guard.yml. The guard gets the user's arguments unchanged, so it
+# sees the same inventory and variables as the service. The appended
+# --limit and --start-at-task override the user's (ansible-playbook keeps
+# the last value), and cephadm-guard-mode.py refuses the options that
+# cannot be overridden.
+if [[ -e $ANSIBLE_DIRECTORY/cephadm-guard.yml ]]; then
+  guard_args=("$@" --limit 'all,localhost' --start-at-task 'Check that the Ceph mon group is not empty')
+  guard_mode=$(python3 /src/cephadm-guard-mode.py "${guard_args[@]}")
+  if [[ $guard_mode == run ]]; then
+    ansible-playbook \
+      --vault-password-file $VAULT \
+      -e @$ENVIRONMENTS_DIRECTORY/configuration.yml \
+      -e @$ENVIRONMENTS_DIRECTORY/secrets.yml \
+      -e @secrets.yml \
+      -e @images.yml \
+      -e @configuration.yml \
+      "${guard_args[@]}" \
+      $ANSIBLE_DIRECTORY/cephadm-guard.yml
+  fi
+fi
+
 export IFS=","
 for service in $services; do
   if [[ -e $ENVIRONMENTS_DIRECTORY/$SUB/playbook-$service.yml ]]; then
