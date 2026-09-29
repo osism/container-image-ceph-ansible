@@ -1,0 +1,109 @@
+---
+# Refuse to run ceph-ansible against a Ceph cluster that cephadm manages.
+#
+# run.sh runs this playbook before every service. Every task is tagged
+# always, and run.sh overrides --limit and --start-at-task, so the user's
+# execution filters cannot skip it. The first task's name is passed to
+# --start-at-task by run.sh; keep the two in sync.
+#
+# Override with -e ceph_cephadm_guard=false, or with
+# ceph_cephadm_guard: false in environments/ceph/configuration.yml.
+
+- name: Check the Ceph mon group for the cephadm guard
+  hosts: localhost
+  gather_facts: false
+  tags: always
+
+  tasks:
+    - name: Check that the Ceph mon group is not empty
+      ansible.builtin.fail:
+        msg: >-
+          Could not determine whether this Ceph cluster is managed by cephadm:
+          the inventory group {{ _mon_group }} has no hosts. Refusing.
+          To override: -e ceph_cephadm_guard=false
+      vars:
+        _mon_group: "{{ mon_group_name | default('ceph-mon') }}"
+      when:
+        - ceph_cephadm_guard | default(true) | bool
+        - groups[_mon_group] | default([]) | length == 0
+
+- name: Inspect the Ceph mon hosts for the cephadm guard
+  hosts: "{{ mon_group_name | default('ceph-mon') }}"
+  gather_facts: false
+  become: true
+  tags: always
+
+  vars:
+    _data_dir: "{{ ceph_cephadm_guard_data_dir | default('/var/lib/ceph') }}"
+
+  tasks:
+    - name: Stat the Ceph data directory
+      ansible.builtin.stat:
+        path: "{{ _data_dir }}"
+      ignore_unreachable: true
+      register: _cephadm_guard_stat
+      when: ceph_cephadm_guard | default(true) | bool
+
+    - name: Find cephadm mon directories
+      ansible.builtin.find:
+        paths: "{{ _data_dir }}"
+        patterns: "mon.*"
+        file_type: directory
+        recurse: true
+        depth: 2
+      ignore_unreachable: true
+      register: _cephadm_guard_find
+      when:
+        - ceph_cephadm_guard | default(true) | bool
+        - _cephadm_guard_stat.stat.isdir | default(false)
+
+    - name: Record the result for the mon host
+      ansible.builtin.set_fact:
+        _cephadm_guard_result:
+          state: "{{ _state }}"
+          line: "{{ inventory_hostname }}: {{ _detail }}"
+      vars:
+        _unreachable: "{{ (_cephadm_guard_stat.unreachable | default(false)) or (_cephadm_guard_find.unreachable | default(false)) }}"
+        _skipped: "{{ _cephadm_guard_find.skipped_paths | default({}) | list }}"
+        _found: "{{ _cephadm_guard_find.files | default([]) | map(attribute='path') | list }}"
+        _state: >-
+          {{ 'unreachable' if _unreachable | bool
+             else 'clean' if not _cephadm_guard_stat.stat.exists
+             else 'incomplete' if not _cephadm_guard_stat.stat.isdir
+             else 'incomplete' if _skipped | length > 0
+             else 'cephadm' if _found | length > 0
+             else 'clean' }}
+        _detail: >-
+          {{ 'unreachable' if _state == 'unreachable'
+             else _data_dir ~ ' is not a directory' if not (_cephadm_guard_stat.stat.isdir | default(true))
+             else 'could not read ' ~ _skipped | join(', ') if _state == 'incomplete'
+             else 'found ' ~ _found | join(', ') if _state == 'cephadm'
+             else 'clean' }}
+      when: ceph_cephadm_guard | default(true) | bool
+
+    - name: Refuse if cephadm manages the cluster or the check is inconclusive
+      ansible.builtin.fail:
+        msg: >-
+          {% if _cephadm %}This Ceph cluster is managed by cephadm
+          ({{ _cephadm | join('; ') }}). ceph-ansible must not be used on it.
+          Use `ceph orch` instead; see the cephadm migration guide.
+          {% else %}Could not determine whether this Ceph cluster is managed
+          by cephadm ({{ _inconclusive | join('; ') }}). Refusing.
+          {% endif %}To override: -e ceph_cephadm_guard=false
+      vars:
+        # A host that failed a task (rather than being unreachable) has no
+        # result; the run fails anyway, but count it as inconclusive too.
+        _results: >-
+          {{ ansible_play_hosts_all
+             | map('extract', hostvars)
+             | map(attribute='_cephadm_guard_result',
+                   default={'state': 'incomplete', 'line': 'a mon host: no result'})
+             | list }}
+        _cephadm: "{{ _results | selectattr('state', 'eq', 'cephadm') | map(attribute='line') | list }}"
+        _inconclusive: >-
+          {{ _results | selectattr('state', 'in', ['unreachable', 'incomplete'])
+             | map(attribute='line') | list }}
+      run_once: true
+      when:
+        - ceph_cephadm_guard | default(true) | bool
+        - (_cephadm | length > 0) or (_inconclusive | length > 0)
