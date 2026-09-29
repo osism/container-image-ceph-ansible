@@ -156,7 +156,7 @@ rm "$ROOT/opt/configuration/environments/ceph/playbook-mons.yml"
 
 make_root real
 data=$WORK/data
-mkdir -p "$data/cephadm/fsid/mon.node-0" "$data/legacy/mon/ceph-node-0"
+mkdir -p "$data/cephadm/ef9dd62c-ca3d-4b22-a10b-d62197511f63/mon.node-0" "$data/legacy/mon/ceph-node-0"
 host="ansible_connection=local ansible_become=false ansible_python_interpreter=auto_silent"
 # The default inventory's mon is legacy; migrated.ini's mon is cephadm.
 printf '[ceph-mon]\nnode-0 %s ceph_cephadm_guard_data_dir=%s\n[ceph-osd]\nnode-3 %s\n' "$host" "$data/legacy" "$host" > "$ROOT/ansible/inventory/hosts.yml"
@@ -169,7 +169,7 @@ e2e() {
     local out rc
     out=$("$ROOT/run.sh" mons "$@" < /dev/null 2>&1)
     rc=$?
-    if [[ $want == refuse ]] && [[ $rc -ne 0 ]] && ! grep -q SERVICE-RAN <<< "$out" && grep -q "managed by cephadm" <<< "$out"; then
+    if [[ $want == refuse ]] && [[ $rc -ne 0 ]] && ! grep -q SERVICE-RAN <<< "$out" && grep -q "This Ceph cluster is managed by cephadm" <<< "$out"; then
         ok "$label"
     elif [[ $want == pass ]] && [[ $rc -eq 0 ]] && grep -q SERVICE-RAN <<< "$out"; then
         ok "$label"
