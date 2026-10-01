@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 This file was started on May 30, 2025. Changes prior to this date are not included in the CHANGELOG.
 
+## [v0.20261001.0] - 2026-10-01
+
+### Fixed
+- Retry Ceph image pull on transient registry errors to avoid failing the whole pull action on a single transient error (osism/container-image-ceph-ansible#708)
+
+### Dependencies
+- yq 4.1.2 → 4.4.0 (osism/container-image-ceph-ansible#712, osism/container-image-ceph-ansible#714)
+
 ## [v0.20260811.0] - 2026-08-11
 
 ### Fixed
