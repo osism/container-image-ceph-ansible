@@ -1,8 +1,11 @@
 ---
 ceph_version: "{{ ceph_version }}"
 
-ceph_image_version: "{{ ceph_image_version }}"
 ceph_ansible_version: "{{ ceph_ansible_version }}"
+{% if version == "latest" %}
+# Latest builds only. A release build leaves both to osism-ansible's
+# versions.yml, which renders them from the same latest/ceph.yml.
+ceph_image_version: "{{ ceph_image_version }}"
 
 cephclient_version: "{{ cephclient_version }}"
-
+{% endif %}
