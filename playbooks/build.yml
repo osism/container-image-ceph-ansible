@@ -36,10 +36,15 @@
           created=$(date --rfc-3339=ns)
           revision=$(git rev-parse --short HEAD)
 
-          # NOTE: For builds for a specific release, the Ceph version is taken from the release repository.
+          # NOTE: A release build takes its Ceph series from the release snapshot
+          #       it is built for, the ceph-ansible-$version tag that the
+          #       Containerfile checks out too. latest/ceph_ansible.yml names the
+          #       series; snapshots from before it existed name it with
+          #       latest/ceph.yml.
           if [[ $version != "latest" ]]; then
-              filename=$(curl -L https://raw.githubusercontent.com/osism/release/main/latest/ceph.yml)
-              ceph_version=$(curl -L https://raw.githubusercontent.com/osism/release/main/latest/$filename | grep "ceph_version:" | awk -F': ' '{ print $2 }')
+              release=https://raw.githubusercontent.com/osism/release/ceph-ansible-$version/latest
+              filename=$(curl -fsSL $release/ceph_ansible.yml 2>/dev/null || curl -fsSL $release/ceph.yml)
+              ceph_version=$(curl -fsSL $release/$filename | grep "ceph_version:" | awk -F': ' '{ print $2 }')
           fi
 
           . defaults/${ceph_version}.sh
