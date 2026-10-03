@@ -97,6 +97,9 @@ cp /generics/inventory/51-ceph /ansible/inventory.generics/51-ceph
 mkdir -p /ansible/galaxy /ansible/group_vars/all
 python3 /src/render-python-requirements.py
 python3 /src/render-versions.py
+# The Ceph series this image deploys, for the guard in cephadm-guard.yml. A
+# file, not a variable: the configuration is loaded as extra vars.
+echo "$CEPH_VERSION" > /ansible/ceph-series
 
 # install required python packages
 uv pip install --no-cache --system -r /requirements.txt

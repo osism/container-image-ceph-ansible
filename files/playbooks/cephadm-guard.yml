@@ -1,5 +1,6 @@
 ---
-# Refuse to run ceph-ansible against a Ceph cluster that cephadm manages.
+# Refuse to run ceph-ansible against a Ceph cluster that cephadm manages,
+# or with a ceph_version this image does not deploy.
 #
 # cephadm keeps everything for a cluster under /var/lib/ceph/<fsid>/ on
 # every host it manages (daemon dirs, crash, removed/); ceph-ansible never
@@ -36,6 +37,24 @@
       when:
         - ceph_cephadm_guard | default(true) | bool
         - groups[_cephadm_guard_mon_group] | default([]) | length == 0
+
+    # ceph-ansible deploys exactly the Ceph series its image was built for.
+    # The image's pins do not decide the daemon images any more (osism-ansible
+    # selects them by ceph_version), so a ceph_version this image cannot
+    # deploy, e.g. tentacle, would otherwise run it against the wrong release.
+    - name: Check that this image deploys the configured Ceph release
+      ansible.builtin.fail:
+        msg: >-
+          ceph_version is {{ ceph_version }}, but this ceph-ansible image
+          deploys Ceph {{ _cephadm_guard_series }} only. Refusing. Releases
+          after squid are deployed with cephadm.
+          To override: -e ceph_cephadm_guard=false
+      vars:
+        _cephadm_guard_series: "{{ lookup('ansible.builtin.file', '/ansible/ceph-series') }}"
+      when:
+        - ceph_cephadm_guard | default(true) | bool
+        - ceph_version | default('') | string | length > 0
+        - ceph_version | string != _cephadm_guard_series
 
 # The decision task below uses run_once over every host's result, which
 # only works with the linear strategy.
