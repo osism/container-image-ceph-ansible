@@ -1,0 +1,141 @@
+diff --git a/infrastructure-playbooks/cephadm-adopt.yml b/infrastructure-playbooks/cephadm-adopt.yml
+index 824002d..5801fc4 100644
+--- a/infrastructure-playbooks/cephadm-adopt.yml
++++ b/infrastructure-playbooks/cephadm-adopt.yml
+@@ -97,16 +97,16 @@
+       changed_when: false
+       register: ceph_version_out
+ 
+-    - name: Set_fact ceph_version
++    - name: Set_fact ceph_running_version
+       ansible.builtin.set_fact:
+-        ceph_version: "{{ ceph_version_out.stdout.split(' ')[2] }}"
++        ceph_running_version: "{{ ceph_version_out.stdout.split(' ')[2] }}"
+ 
+     - name: Fail on pre octopus ceph releases
+       ansible.builtin.fail:
+         msg: >
+-          Your Ceph version {{ ceph_version }} is not supported for this operation.
++          Your Ceph version {{ ceph_running_version }} is not supported for this operation.
+           Please upgrade your cluster with the rolling_update.yml playbook first.
+-      when: ceph_version is version('15.2', '<')
++      when: ceph_running_version is version('15.2', '<')
+ 
+     - name: Check if it is atomic host
+       ansible.builtin.stat:
+diff --git a/infrastructure-playbooks/rolling_update.yml b/infrastructure-playbooks/rolling_update.yml
+index b36d0dd..810f2d2 100644
+--- a/infrastructure-playbooks/rolling_update.yml
++++ b/infrastructure-playbooks/rolling_update.yml
+@@ -126,13 +126,13 @@
+       block:
+         - name: Get the ceph release being deployed
+           ansible.builtin.command: "{{ ceph_cmd }} --cluster {{ cluster }} --version"
+-          register: ceph_version
++          register: ceph_version_out
+           changed_when: false
+ 
+         - name: Check ceph release being deployed
+           ansible.builtin.fail:
+             msg: "This version of ceph-ansible is intended for upgrading to Ceph Reef only."
+-          when: "'reef' not in ceph_version.stdout.split()"
++          when: "'reef' not in ceph_version_out.stdout.split()"
+ 
+ 
+ - name: Ensure cluster config is applied
+diff --git a/roles/ceph-common/tasks/main.yml b/roles/ceph-common/tasks/main.yml
+index 1fdb3bb..cde5a8c 100644
+--- a/roles/ceph-common/tasks/main.yml
++++ b/roles/ceph-common/tasks/main.yml
+@@ -29,11 +29,11 @@
+   ansible.builtin.command: ceph --version
+   changed_when: false
+   check_mode: false
+-  register: ceph_version
++  register: ceph_version_out
+ 
+-- name: Set_fact ceph_version
++- name: Set_fact ceph_running_version
+   ansible.builtin.set_fact:
+-    ceph_version: "{{ ceph_version.stdout.split(' ')[2] }}"
++    ceph_running_version: "{{ ceph_version_out.stdout.split(' ')[2] }}"
+ 
+ - name: Set_fact ceph_release - override ceph_release with ceph_stable_release
+   ansible.builtin.set_fact:
+diff --git a/roles/ceph-container-common/tasks/main.yml b/roles/ceph-container-common/tasks/main.yml
+index 6a36e8b..0bf650b 100644
+--- a/roles/ceph-container-common/tasks/main.yml
++++ b/roles/ceph-container-common/tasks/main.yml
+@@ -29,11 +29,11 @@
+     --version
+   changed_when: false
+   check_mode: false
+-  register: ceph_version
++  register: ceph_version_out
+ 
+-- name: Set_fact ceph_version ceph_version.stdout.split
++- name: Set_fact ceph_running_version
+   ansible.builtin.set_fact:
+-    ceph_version: "{{ ceph_version.stdout.split(' ')[2] }}"
++    ceph_running_version: "{{ ceph_version_out.stdout.split(' ')[2] }}"
+ 
+ - name: Include release.yml
+   ansible.builtin.include_tasks: release.yml
+diff --git a/roles/ceph-container-common/tasks/release.yml b/roles/ceph-container-common/tasks/release.yml
+index 34b9361..8a949bd 100644
+--- a/roles/ceph-container-common/tasks/release.yml
++++ b/roles/ceph-container-common/tasks/release.yml
+@@ -2,44 +2,44 @@
+ - name: Set_fact ceph_release jewel
+   ansible.builtin.set_fact:
+     ceph_release: jewel
+-  when: ceph_version.split('.')[0] is version('10', '==')
++  when: ceph_running_version.split('.')[0] is version('10', '==')
+ 
+ - name: Set_fact ceph_release kraken
+   ansible.builtin.set_fact:
+     ceph_release: kraken
+-  when: ceph_version.split('.')[0] is version('11', '==')
++  when: ceph_running_version.split('.')[0] is version('11', '==')
+ 
+ - name: Set_fact ceph_release luminous
+   ansible.builtin.set_fact:
+     ceph_release: luminous
+-  when: ceph_version.split('.')[0] is version('12', '==')
++  when: ceph_running_version.split('.')[0] is version('12', '==')
+ 
+ - name: Set_fact ceph_release mimic
+   ansible.builtin.set_fact:
+     ceph_release: mimic
+-  when: ceph_version.split('.')[0] is version('13', '==')
++  when: ceph_running_version.split('.')[0] is version('13', '==')
+ 
+ - name: Set_fact ceph_release nautilus
+   ansible.builtin.set_fact:
+     ceph_release: nautilus
+-  when: ceph_version.split('.')[0] is version('14', '==')
++  when: ceph_running_version.split('.')[0] is version('14', '==')
+ 
+ - name: Set_fact ceph_release octopus
+   ansible.builtin.set_fact:
+     ceph_release: octopus
+-  when: ceph_version.split('.')[0] is version('15', '==')
++  when: ceph_running_version.split('.')[0] is version('15', '==')
+ 
+ - name: Set_fact ceph_release pacific
+   ansible.builtin.set_fact:
+     ceph_release: pacific
+-  when: ceph_version.split('.')[0] is version('16', '==')
++  when: ceph_running_version.split('.')[0] is version('16', '==')
+ 
+ - name: Set_fact ceph_release quincy
+   ansible.builtin.set_fact:
+     ceph_release: quincy
+-  when: ceph_version.split('.')[0] is version('17', '==')
++  when: ceph_running_version.split('.')[0] is version('17', '==')
+ 
+ - name: Set_fact ceph_release reef
+   ansible.builtin.set_fact:
+     ceph_release: reef
+-  when: ceph_version.split('.')[0] is version('18', '==')
++  when: ceph_running_version.split('.')[0] is version('18', '==')
