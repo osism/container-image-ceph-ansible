@@ -1,0 +1,2383 @@
+diff --git a/README-MULTISITE.md b/README-MULTISITE.md
+new file mode 100644
+index 000000000..c9a6ac7a5
+--- /dev/null
++++ b/README-MULTISITE.md
+@@ -0,0 +1,556 @@
++# RGW Multisite
++
++This document contains directions for configuring the RGW Multisite in ceph-ansible.
++Multisite replication can be configured either over multiple Ceph clusters or in a single Ceph cluster to isolate RGWs from each other.
++
++The first two sections are refreshers on working with ansible inventory and RGW Multisite.
++The next 4 sections are instructions on deploying the following multisite scenarios:
++
++- Scenario #1: Single Realm with Multiple Ceph Clusters
++- Scenario #2: Single Ceph Cluster with Multiple Realms
++- Scenario #3: Multiple Realms over Multiple Ceph Clusters
++- Scenario #4: Multiple Realms over Multiple Ceph Clusters with Multiple Instances on a Host
++
++## Working with Ansible Inventory
++
++If you are familiar with basic ansible terminology, working with inventory files, and variable precedence feel free to skip this section.
++
++### The Inventory File
++
++ceph-ansible starts up all the different daemons in a Ceph cluster.
++Each daemon (osd.0, mon.1, rgw.a) is given a line in the inventory file. Each line is called a **host** in ansible.
++Each type of daemon (osd, mon, rgw, mgr, etc.) is given a **group** with its respective daemons in the ansible inventory file.
++
++Here is an example of an inventory file (in .ini format) for a ceph cluster with 1 ceph-mgr, 4 rgws, 3 osds, and 2 mons:
++
++```ansible-inventory
++[mgrs]
++mgr-001 ansible_ssh_host=192.168.224.48 ansible_ssh_port=22
++
++[rgws]
++rgw-001 ansible_ssh_host=192.168.216.145 ansible_ssh_port=22 radosgw_address=192.168.216.145
++rgw-002 ansible_ssh_host=192.168.215.178 ansible_ssh_port=22 radosgw_address=192.168.215.178
++
++[osds]
++osd-001 ansible_ssh_host=192.168.230.196 ansible_ssh_port=22
++osd-002 ansible_ssh_host=192.168.226.21 ansible_ssh_port=22
++osd-003 ansible_ssh_host=192.168.176.118 ansible_ssh_port=22
++
++[mons]
++mon-001 ansible_ssh_host=192.168.210.155 ansible_ssh_port=22 monitor_address=192.168.210.155
++mon-002 ansible_ssh_host=192.168.179.111 ansible_ssh_port=22 monitor_address=192.168.179.111
++```
++
++Notice there are 4 groups defined here: mgrs, rgws, osds, mons.
++There is one host (mgr-001) in mgrs, 2 hosts (rgw-001, rgw-002) in rgws, 3 hosts (osd-001, osd-002, osd-003) in osds, and 2 hosts (mon-001, mon-002) in mons.
++
++### group_vars
++
++In the ceph-ansible tree there is a directory called `group_vars`. This directory has a collection of .yml files for variables set for each of the groups.
++The rgw multisite specific variables are defined in `all.yml`. This file has variables that apply to all groups in the inventory.
++When a variable, for example if `rgw_realm: usa`, is set in `group_vars/all.yml`, `usa` will be the value for `rgw_realm` for all of the rgws.
++
++### host_vars
++
++If you want to set any of the variables defined in `group_vars` for a specific host you have two options.
++One option is to edit the line in the inventory file for the host you want to configure. In the above inventory each mon and rgw has a host specific variable for its address.
++
++The preferred option is to create a directory called `host_vars` at the root of the ceph-ansible tree.
++In `host_vars/` there can be files with the same name as the host (ex: osd-001, mgr-001, rgw-001) that set variables for each host.
++The values for the variables set in `host_vars` have a higher precedence than the values in `group_var`.
++
++Consider this the file `host_vars/rgw-001`:
++
++```yaml
++rgw_realm: usa
++rgw_zonegroup: alaska
++rgw_zone: juneau
++
++rgw_zonemaster: true
++rgw_zonesecondary: false
++system_access_key: alaskaaccesskey
++system_secret_key: alaskasecretkey
++```
++
++Even if `rgw_realm` is set to `france` in `group_vars/all.yml`, `rgw_realm` will evaluate to `usa` for tasks run on `rgw-001`.
++This is because Ansible gives higher precedence to the values set in `host_vars` over `group_vars`.
++
++For more information on working with inventory in Ansible please visit: <https://docs.ansible.com/ansible/latest/user_guide/intro_inventory.html>.
++
++## Brief Multisite Overview
++
++### RGW Multisite terminology
++
++If you are familiar with RGW multisite in detail, feel free to skip this section.
++
++Rados gateways (RGWs) in multisite replication are grouped into zones.
++
++A group of 1 or more RGWs can be grouped into a **zone**.\
++A group of 1 or more zones can be grouped into a **zonegroup**.\
++A group of 1 or more zonegroups can be grouped into a **realm**.\
++A Ceph **cluster** in multisite has 1 or more rgws that use the same backend OSDs.
++
++There can be multiple clusters in one realm, multiple realms in a single cluster, or multiple realms over multiple clusters.
++
++### RGW Realms
++
++A realm allows the RGWs inside of it to be independent and isolated from RGWs outside of the realm. A realm contains one or more zonegroups.
++
++Realms can contain 1 or more clusters. There can also be more than 1 realm in a cluster.
++
++### RGW Zonegroups
++
++Similar to zones a zonegroup can be either **master zonegroup** or a **secondary zonegroup**.
++
++`rgw_zonegroupmaster` specifies whether the zonegroup will be the master zonegroup in a realm.
++There can only be one master zonegroup per realm. There can be any number of secondary zonegroups in a realm.
++Zonegroups that are not master must have `rgw_zonegroupmaster` set to false.
++
++### RGW Zones
++
++A zone is a collection of RGW daemons. A zone can be either **master zone** or a **secondary zone**.
++
++`rgw_zonemaster` specifies that the zone will be the master zone in a zonegroup.
++`rgw_zonesecondary` specifies that the zone will be a secondary zone in a zonegroup.
++Both `rgw_zonemaster` and `rgw_zonesecondary` need to be defined. They cannot have the same value.
++
++A secondary zone pulls a realm in order to sync data to it.
++
++Finally, The variable `rgw_zone` is set to "default" to enable compression for clusters configured without rgw multi-site.
++If multisite is configured `rgw_zone` should not be set to "default".
++
++For more detail information on multisite please visit: <https://docs.ceph.com/docs/main/radosgw/multisite/>.
++
++## Deployment Scenario #1: Single Realm & Zonegroup with Multiple Ceph Clusters
++
++### Requirements
++
++* At least 2 Ceph clusters
++* 1 RGW per cluster
++* Jewel or newer
++
++### Configuring the Master Zone in the Primary Cluster
++
++This will setup a realm, master zonegroup and master zone in the Ceph cluster.
++Since there is only 1 realm, 1 zonegroup, and 1 zone for all the rgw hosts, only `group_vars/all.yml` needs to be edited for mulitsite conifguration.
++If there is one more that one rgw being deployed in this configuration, the rgw(s) will be added to the master zone.
++
++1. Generate System Access and System Secret Keys
++
++    ```bash
++    echo system_access_key: $(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 20 | head -n 1) > multi-site-keys.txt
++    echo system_secret_key: $(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 40 | head -n 1) >> multi-site-keys.txt
++    ```
++
++2. Edit `group_vars/all.yml` for the 1st cluster
++
++    ```yaml
++    rgw_multisite: true
++
++    rgw_zone: juneau
++    rgw_zonegroup: alaska
++    rgw_realm: usa
++
++    rgw_zonemaster: true
++    rgw_zonesecondary: false
++
++    rgw_zonegroupmaster: true
++
++    rgw_multisite_proto: http
++    rgw_zone_user: edward.lewis
++    rgw_zone_user_display_name: "Edward Lewis"
++
++    system_access_key: 6kWkikvapSnHyE22P7nO
++    system_secret_key: MGecsMrWtKZgngOHZdrd6d3JxGO5CPWgT2lcnpSt
++    ```
++
++    **Note:** `rgw_zonemaster` should have the value of `true` and `rgw_zonesecondary` should be `false`. Both values always need to be defined when running multisite.
++
++    **Note:** replace the `system_access_key` and `system_secret_key` values with the ones you generated.
++
++3. Run the ceph-ansible playbook for the 1st cluster
++
++### Configuring the Secondary Zone in a Separate Cluster
++
++This will setup a realm, master zonegroup and master zone in the secondary Ceph cluster.
++Since there is only 1 realm, 1 zonegroup, and 1 zone for all the rgw hosts, only `group_vars/all.yml` needs to be edited for mulitsite conifguration.
++If there is one more that one rgw being deployed in this configuration, the rgw(s) will be added to the secondary zone.
++
++1. Edit `group_vars/all.yml` for the 2nd cluster
++
++    ```yaml
++    rgw_multisite: true
++
++    rgw_zone: fairbanks
++    rgw_zonegroup: alaska
++    rgw_realm: usa
++
++    rgw_zonemaster: false
++    rgw_zonesecondary: true
++
++    rgw_zonegroupmaster: false
++
++    rgw_multisite_proto: http
++    rgw_zone_user: edward.lewis
++    rgw_zone_user_display_name: "Edward Lewis"
++
++    system_access_key: 6kWkikvapSnHyE22P7nO
++    system_secret_key: MGecsMrWtKZgngOHZdrd6d3JxGO5CPWgT2lcnpSt
++
++    rgw_pull_proto: http
++    rgw_pull_port: 8080
++    rgw_pullhost: rgw-001-hostname
++    ```
++
++    **Note:** `rgw_zonemaster` should have the value of `false`, `rgw_zonegroupmaster` should have the value of `false` and `rgw_zonesecondary` should be `true`
++
++    **Note:** The variables `rgw_pull_port`, `rgw_pull_proto`, `rgw_pullhost`, are joined together to make an endpoint string needed to create secondary zones. This endpoint is of one of the RGW endpoints in a master zone in the zonegroup and realm you want to create secondary zones in. This endpoint **must be resolvable** from the mons and rgws in the cluster the secondary zone(s)  are being created in.
++
++    **Note:** `system_access_key`, and `system_secret_key` should match what you used in the Primary Cluster
++
++2. Run the ceph-ansible playbook on your 2nd cluster
++
++### Conclusion
++
++You should now have a master zone on cluster0 and a secondary zone on cluster1 in an Active-Active mode.
++
++## Deployment Scenario #2: Single Ceph Cluster with Multiple Realms
++
++### Requirements
++
++* Jewel or newer
++
++### Configuring Multiple Realms in a Single Cluster
++
++This configuration will a single Ceph cluster with multiple realms.
++Each of the rgws in the inventory should have a file in `host_vars` where the realm, zone, and zonegroup can be set for the rgw along with other variables.
++
++1. Generate System Access and System Secret Keys for each realm
++
++    ```bash
++    echo system_access_key: $(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 20 | head -n 1) > multi-site-keys-realm-1.txt
++    echo system_secret_key: $(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 40 | head -n 1) >> multi-site-keys-realm-1.txt
++
++    echo system_access_key: $(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 20 | head -n 1) > multi-site-keys-realm-2.txt
++    echo system_secret_key: $(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 40 | head -n 1) >> multi-site-keys-realm-2.txt
++    ```
++
++2. Edit `group_vars/all.yml` for the cluster
++
++    ```yaml
++    rgw_multisite: true
++    ```
++
++    As previously learned, all values set here will be set on all rgw hosts. `rgw_multisite` be set to `true` for all rgw hosts so multisite playbooks can run on all rgws.
++
++3. Create & edit files in `host_vars/` to create realms, zonegroups, and master zones.
++
++    Here is an example of the file `host_vars/rgw-001` for the `rgw-001` entry in the `[rgws]` section of for the example ansible inventory.
++
++    ```yaml
++    rgw_zonemaster: true
++    rgw_zonesecondary: false
++    rgw_zonegroupmaster: true
++    rgw_multisite_proto: http
++    rgw_realm: france
++    rgw_zonegroup: idf
++    rgw_zone: paris
++    radosgw_address: "{{ _radosgw_address }}"
++    radosgw_frontend_port: 8080
++    rgw_zone_user: jacques.chirac
++    rgw_zone_user_display_name: "Jacques Chirac"
++    system_access_key: P9Eb6S8XNyo4dtZZUUMy
++    system_secret_key: qqHCUtfdNnpHq3PZRHW5un9l0bEBM812Uhow0XfB
++    ```
++
++    Here is an example of the file `host_vars/rgw-002` for the `rgw-002` entry in the `[rgws]` section of for the example ansible inventory.
++
++    ```yaml
++    rgw_zonemaster: true
++    rgw_zonesecondary: false
++    rgw_zonegroupmaster: true
++    rgw_multisite_proto: http
++    rgw_realm: usa
++    rgw_zonegroup: alaska
++    rgw_zone: juneau
++    radosgw_address: "{{ _radosgw_address }}"
++    radosgw_frontend_port: 8080
++    rgw_zone_user: edward.lewis
++    rgw_zone_user_display_name: "Edward Lewis"
++    system_access_key: yu17wkvAx3B8Wyn08XoF
++    system_secret_key: 5YZfaSUPqxSNIkZQQA3lBZ495hnIV6k2HAz710BY
++    ```
++
++    **Note:** Since `rgw_realm`, `rgw_zonegroup`, and `rgw_zone` differ between files, a new realm, zonegroup, and master zone are created containing rgw-001 and rgw-002 respectively.
++
++    **Note:** `rgw_zonegroupmaster` is set to true in each of the files since it will be the only zonegroup in each realm.
++
++    **Note:** `rgw_zonemaster` should have the value of `true` and `rgw_zonesecondary` should be `false`.
++
++    **Note:** replace the `system_access_key` and `system_secret_key` values with the ones you generated.
++
++4. Run the ceph-ansible playbook on your cluster
++
++### Conclusion
++
++The RGWs in the deployed cluster will be split up into 2 realms: `france` and `usa`. France has a zonegroup named `idf` and usa has one called `alaska`.
++`Idf` has a master zone called `paris`. `Alaska` has a  master zone called `juneau`.
++
++## Deployment Scenario #3: Multiple Realms over Multiple Ceph Clusters
++
++The multisite playbooks in ceph-ansible are flexible enough to create many realms, zonegroups, and zones that span many clusters.
++
++A multisite configuration consisting of multiple realms across multiple clusters can be configured by having files in `host_vars` for the rgws in each cluster similar to scenario #2.
++
++The host_vars for the rgws in the second cluster would have `rgw_zonesecondary` set to true and the additional `rgw_pull` variables as seen in scenario #2
++
++The inventory for the rgws section of the master cluster for this example looks like:
++
++```ansible-inventory
++[rgws]
++rgw-001 ansible_ssh_host=192.168.216.145 ansible_ssh_port=22 radosgw_address=192.168.216.145
++rgw-002 ansible_ssh_host=192.168.215.178 ansible_ssh_port=22 radosgw_address=192.168.215.178
++```
++
++The inventory for the rgws section of the secondary cluster for this example looks like:
++
++```ansible-inventory
++[rgws]
++rgw-003 ansible_ssh_host=192.168.215.178 ansible_ssh_port=22 radosgw_address=192.168.215.199
++rgw-004 ansible_ssh_host=192.168.215.178 ansible_ssh_port=22 radosgw_address=192.168.194.109
++```
++
++### Requirements
++
++* At least 2 Ceph clusters
++* at least 2 RGW in the master cluster and the secondary clusters
++* Jewel or newer
++
++1. Generate System Access and System Secret Keys for each realm
++
++    ```bash
++    echo system_access_key: $(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 20 | head -n 1) > multi-site-keys-realm-1.txt
++    echo system_secret_key: $(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 40 | head -n 1) >> multi-site-keys-realm-1.txt
++
++    echo system_access_key: $(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 20 | head -n 1) > multi-site-keys-realm-2.txt
++    echo system_secret_key: $(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 40 | head -n 1) >> multi-site-keys-realm-2.txt
++
++    ...
++    ```
++
++2. Edit `group_vars/all.yml` for the cluster
++
++    ```yaml
++    rgw_multisite: true
++    ```
++
++    As per the previous example, all values set here will be set on all rgw hosts.
++
++3. Create & edit files in `host_vars/` to create realms, zonegroups, and master zones on cluster #1.
++
++    Here is an example of the file `host_vars/rgw-001` for the the master cluster.
++
++    ```yaml
++    rgw_zonemaster: true
++    rgw_zonesecondary: false
++    rgw_zonegroupmaster: true
++    rgw_multisite_proto: http
++    rgw_realm: france
++    rgw_zonegroup: idf
++    rgw_zone: paris
++    radosgw_address: "{{ _radosgw_address }}"
++    radosgw_frontend_port: 8080
++    rgw_zone_user: jacques.chirac
++    rgw_zone_user_display_name: "Jacques Chirac"
++    system_access_key: P9Eb6S8XNyo4dtZZUUMy
++    system_secret_key: qqHCUtfdNnpHq3PZRHW5un9l0bEBM812Uhow0XfB
++    ```
++
++    Here is an example of the file `host_vars/rgw-002` for the the master cluster.
++
++    ```yaml
++    rgw_zonemaster: true
++    rgw_zonesecondary: false
++    rgw_zonegroupmaster: true
++    rgw_multisite_proto: http
++    rgw_realm: usa
++    rgw_zonegroup: alaska
++    rgw_zone: juneau
++    radosgw_address: "{{ _radosgw_address }}"
++    radosgw_frontend_port: 8080
++    rgw_zone_user: edward.lewis
++    rgw_zone_user_display_name: "Edward Lewis"
++    system_access_key: yu17wkvAx3B8Wyn08XoF
++    system_secret_key: 5YZfaSUPqxSNIkZQQA3lBZ495hnIV6k2HAz710BY
++    ```
++
++4. Run the ceph-ansible playbook on your master cluster.
++
++5. Create & edit files in `host_vars/` for the entries in the `[rgws]` section of the inventory on the secondary cluster.
++
++    Here is an example of the file `host_vars/rgw-003` for the `rgw-003` entry in the `[rgws]` section for a secondary cluster.
++
++    ```yaml
++    rgw_zonemaster: false
++    rgw_zonesecondary: true
++    rgw_zonegroupmaster: false
++    rgw_multisite_proto: http
++    rgw_realm: france
++    rgw_zonegroup: idf
++    rgw_zone: versailles
++    radosgw_address: "{{ _radosgw_address }}"
++    radosgw_frontend_port: 8080
++    rgw_zone_user: jacques.chirac
++    rgw_zone_user_display_name: "Jacques Chirac"
++    system_access_key: P9Eb6S8XNyo4dtZZUUMy
++    system_secret_key: qqHCUtfdNnpHq3PZRHW5un9l0bEBM812Uhow0XfB
++    rgw_pull_proto: http
++    rgw_pull_port: 8080
++    rgw_pullhost: rgw-001-hostname
++    ```
++
++    Here is an example of the file `host_vars/rgw-004` for the `rgw-004` entry in the `[rgws]` section for a secondary cluster.
++
++    ```yaml
++    rgw_zonemaster: false
++    rgw_zonesecondary: true
++    rgw_zonegroupmaster: false
++    rgw_multisite_proto: http
++    rgw_realm: usa
++    rgw_zonegroup: alaska
++    rgw_zone: juneau
++    radosgw_address: "{{ _radosgw_address }}"
++    radosgw_frontend_port: 8080
++    rgw_zone_user: edward.lewis
++    rgw_zone_user_display_name: "Edward Lewis"
++    system_access_key: yu17wkvAx3B8Wyn08XoF
++    system_secret_key: 5YZfaSUPqxSNIkZQQA3lBZ495hnIV6k2HAz710BY
++    rgw_pull_proto: http
++    rgw_pull_port: 8080
++    rgw_pullhost: rgw-002-hostname
++    ```
++
++6. Run the ceph-ansible playbook on your secondary cluster.
++
++### Conclusion
++
++There will be 2 realms in this configuration, `france` and `usa`, with RGWs and RGW zones in both clusters. Cluster0 will has the master zones and Cluster1 has the secondary zones.
++
++Data is realm france will be replicated over both clusters and remain isolated from rgws in realm usa and vice versa.
++
++## Deployment Scenario #4: Multiple Realms over Multiple Ceph Clusters with Multiple Instances
++
++More than 1 RGW can be running on a single host. To configure multisite for a host with more than one rgw instance running on the host, `rgw_instances` must be configured.
++
++Each item in `rgw_instances` (declared in a host_vars file) represents an RGW on that host. In each item is the multisite configuration for that RGW.
++
++Here is an example:
++
++```yaml
++rgw_instances:
++  - instance_name: rgw1
++    rgw_zonemaster: true
++    rgw_zonesecondary: false
++    rgw_zonegroupmaster: true
++    rgw_realm: usa
++    rgw_zonegroup: alaska
++    rgw_zone: juneau
++    radosgw_address: "{{ _radosgw_address }}"
++    radosgw_frontend_port: 8080
++    rgw_multisite_proto: http
++    rgw_zone_user: edward.lewis
++    rgw_zone_user_display_name: "Edward Lewis"
++    system_access_key: yu17wkvAx3B8Wyn08XoF
++    system_secret_key: 5YZfaSUPqxSNIkZQQA3lBZ495hnIV6k2HAz710BY
++```
++
++### Setting rgw_instances for a host in the master zone
++
++Here is an example of a host_vars for a host (ex: rgw-001 in the examples) containing 2 rgw_instances:
++
++```yaml
++rgw_instances:
++  - instance_name: rgw1
++    rgw_zonemaster: true
++    rgw_zonesecondary: false
++    rgw_zonegroupmaster: true
++    rgw_realm: usa
++    rgw_zonegroup: alaska
++    rgw_zone: juneau
++    radosgw_address: "{{ _radosgw_address }}"
++    radosgw_frontend_port: 8080
++    rgw_multisite_proto: http
++    rgw_zone_user: edward.lewis
++    rgw_zone_user_display_name: "Edward Lewis"
++    system_access_key: yu17wkvAx3B8Wyn08XoF
++    system_secret_key: 5YZfaSUPqxSNIkZQQA3lBZ495hnIV6k2HAz710BY
++  - instance_name: rgw2
++    rgw_zonemaster: true
++    rgw_zonesecondary: false
++    rgw_zonegroupmaster: true
++    rgw_realm: france
++    rgw_zonegroup: idf
++    rgw_zone: paris
++    radosgw_address: "{{ _radosgw_address }}"
++    radosgw_frontend_port: 8081
++    rgw_multisite_proto: http
++    rgw_zone_user: jacques.chirac
++    rgw_zone_user_display_name: "Jacques Chirac"
++    system_access_key: P9Eb6S8XNyo4dtZZUUMy
++    system_secret_key: qqHCUtfdNnpHq3PZRHW5un9l0bEBM812Uhow0XfB
++```
++
++This example starts up 2 rgws on host rgw-001. `rgw1` is configured to be in realm usa and `rgw2` is configured to be in realm france.
++
++**Note:** The old format of declaring `rgw_zonemaster`, `rgw_zonesecondary`, `rgw_zonegroupmaster`, `rgw_multisite_proto` outside of `rgw_instances` still works but declaring the values at the instance level (as seen above) is preferred.
++
++### Setting rgw_instances for a host in a secondary zone
++
++To start up multiple rgws on a host that are in a secondary zone, `endpoint` must be added to rgw_instances.
++
++The value of `endpoint` should be the endpoint of an RGW in the master zone of the realm that is resolvable from the host.`rgw_pull_{proto, host, port}` are not necessary since `endpoint` is a combination of all three.
++
++Here is an example of a host_vars for a host containing 2 rgw_instances in a secondary zone:
++
++```yaml
++rgw_instances:
++  - instance_name: rgw3
++    rgw_zonemaster: false
++    rgw_zonesecondary: true
++    rgw_zonegroupmaster: false
++    rgw_realm: usa
++    rgw_zonegroup: alaska
++    rgw_zone: fairbanks
++    radosgw_address: "{{ _radosgw_address }}"
++    radosgw_frontend_port: 8080
++    rgw_multisite_proto: "http"
++    rgw_zone_user: edward.lewis
++    rgw_zone_user_display_name: "Edward Lewis"
++    system_access_key: yu17wkvAx3B8Wyn08XoF
++    system_secret_key: 5YZfaSUPqxSNIkZQQA3lBZ495hnIV6k2HAz710BY
++    endpoint: https://rgw-001-hostname:8080
++  - instance_name: rgw4
++    rgw_zonemaster: false
++    rgw_zonesecondary: true
++    rgw_zonegroupmaster: false
++    rgw_realm: france
++    rgw_zonegroup: idf
++    rgw_zone: versailles
++    radosgw_address: "{{ _radosgw_address }}"
++    radosgw_frontend_port: 8081
++    rgw_multisite_proto: "http"
++    rgw_zone_user: jacques.chirac
++    rgw_zone_user_display_name: "Jacques Chirac"
++    system_access_key: P9Eb6S8XNyo4dtZZUUMy
++    system_secret_key: qqHCUtfdNnpHq3PZRHW5un9l0bEBM812Uhow0XfB
++    endpoint: https://rgw-001-hostname:8081
++```
++
++This example starts up 2 rgws on the host that will pull the realm from the rgws on rgw-001 above. `rgw3` is pulling from the rgw endpoint in realm usa in the master zone example above (instance name rgw1). `rgw4` is pulling from the rgw endpoint in realm france in the master zone example above (instance name rgw2).
++
++**Note:** The old format of declaring `rgw_zonemaster`, `rgw_zonesecondary`, `rgw_zonegroupmaster`, `rgw_multisite_proto` outside of `rgw_instances` still works but declaring the values at the instance level (as seen above) is preferred.
++
++### Conclusion
++
++`rgw_instances` can be used in host_vars for multisite deployments like scenarios 2 and 3
++
+diff --git a/group_vars/all.yml.sample b/group_vars/all.yml.sample
+index 6a66b871d..0bd3b9bdc 100644
+--- a/group_vars/all.yml.sample
++++ b/group_vars/all.yml.sample
+@@ -465,6 +465,43 @@ dummy:
+ #nfs_obj_gw: "{{ False if groups.get(mon_group_name, []) | length == 0 else True }}"
+ 
+ 
++#############
++# MULTISITE #
++#############
++
++# Changing this value allows multisite code to run
++#rgw_multisite: false
++
++# If the desired multisite configuration involves only one realm, one zone group and one zone (per cluster), then the multisite variables can be set here.
++# Please see README-MULTISITE.md for more information.
++#
++# If multiple realms or multiple zonegroups or multiple zones need to be created on a cluster then,
++# the multisite config variables should be editted in their respective zone .yaml file and realm .yaml file.
++# See README-MULTISITE.md for more information.
++
++# The following Multi-site related variables should be set by the user.
++#
++# rgw_zone is set to "default" to enable compression for clusters configured without rgw multi-site
++# If multisite is configured, rgw_zone should not be set to "default".
++#
++#rgw_zone: default
++
++#rgw_zonemaster: true
++#rgw_zonesecondary: false
++#rgw_zonegroup: solarsystem # should be set by the user
++#rgw_zonegroupmaster: true
++#rgw_zone_user: zone.user
++#rgw_zone_user_display_name: "Zone User"
++#rgw_realm: milkyway # should be set by the user
++#rgw_multisite_proto: "http"
++#system_access_key: 6kWkikvapSnHyE22P7nO # should be re-created by the user
++#system_secret_key: MGecsMrWtKZgngOHZdrd6d3JxGO5CPWgT2lcnpSt # should be re-created by the user
++
++# Multi-site remote pull URL variables
++#rgw_pull_port: "{{ radosgw_frontend_port }}"
++#rgw_pull_proto: "http" # should be the same as rgw_multisite_proto for the master zone cluster
++#rgw_pullhost: localhost # rgw_pullhost only needs to be declared if there is a zone secondary.
++
+ ###################
+ # CONFIG OVERRIDE #
+ ###################
+diff --git a/group_vars/realm.yml.sample b/group_vars/realm.yml.sample
+new file mode 100644
+index 000000000..4c95a5985
+--- /dev/null
++++ b/group_vars/realm.yml.sample
+@@ -0,0 +1,15 @@
++#rgw_realm: usa
++
++# the user should generate a new pair of keys for each realm
++
++#system_access_key: 6kWkikvapSnHyE22P7nO
++#system_secret_key: MGecsMrWtKZgngOHZdrd6d3JxGO5CPWgT2lcnpSt
++
++#rgw_realm_system_user: bostonian
++#rgw_realm_system_user_display_name: "Mark Wahlberg"
++
++# The variables rgw_pull_port, rgw_pull_proto, rgw_pullhost, are what comprise one of the rgw endpoints in a master zone in the zonegroup and realm you want to create secondary zones in.
++
++#rgw_pull_port: "{{ radosgw_frontend_port }}"
++#rgw_pull_proto: "http"
++#rgw_pullhost: localhost
+diff --git a/group_vars/zone.yml.sample b/group_vars/zone.yml.sample
+new file mode 100644
+index 000000000..f53282f71
+--- /dev/null
++++ b/group_vars/zone.yml.sample
+@@ -0,0 +1,12 @@
++#rgw_zone: boston
++
++# Both rgw_zonemaster and rgw_zonesecondary must be set and they cannot have the same value
++
++#rgw_zonemaster: true
++#rgw_zonesecondary: false
++
++#rgw_zonegroup: massachusetts
++
++# The variable rgw_zonegroupmaster specifies the zonegroup will be the master zonegroup in a realm. There can only be one master zonegroup in a realm
++
++#rgw_zonegroupmaster: true
+diff --git a/infrastructure-playbooks/cephadm-adopt.yml b/infrastructure-playbooks/cephadm-adopt.yml
+index 824002de0..774326afd 100644
+--- a/infrastructure-playbooks/cephadm-adopt.yml
++++ b/infrastructure-playbooks/cephadm-adopt.yml
+@@ -920,7 +920,7 @@
+             src: "{{ radosgw_frontend_ssl_certificate }}"
+           register: rgw_ssl_cert
+ 
+-        - name: Store ssl certificate in kv store
++        - name: Store ssl certificate in kv store (not multisite)
+           ansible.builtin.command: >
+             {{ container_binary }} run --rm -i -v /etc/ceph:/etc/ceph:z --entrypoint=ceph {{ ceph_docker_registry }}/{{ ceph_docker_image }}:{{ ceph_docker_image_tag }} --cluster {{ cluster }}
+             config-key set rgw/cert/rgw.{{ ansible_facts['hostname'] }} -i -
+@@ -928,6 +928,21 @@
+             stdin: "{{ rgw_ssl_cert.content | b64decode }}"
+             stdin_add_newline: false
+           changed_when: false
++          when: not rgw_multisite | bool
++          delegate_to: "{{ groups[mon_group_name][0] }}"
++          environment:
++            CEPHADM_IMAGE: '{{ ceph_docker_registry }}/{{ ceph_docker_image }}:{{ ceph_docker_image_tag }}'
++
++        - name: Store ssl certificate in kv store (multisite)
++          ansible.builtin.command: >
++            {{ container_binary }} run --rm -i -v /etc/ceph:/etc/ceph:z --entrypoint=ceph {{ ceph_docker_registry }}/{{ ceph_docker_image }}:{{ ceph_docker_image_tag }} --cluster {{ cluster }}
++            config-key set rgw/cert/rgw.{{ ansible_facts['hostname'] }}.{{ item.rgw_realm }}.{{ item.rgw_zone }}.{{ item.radosgw_frontend_port }} -i -
++          args:
++            stdin: "{{ rgw_ssl_cert.content | b64decode }}"
++            stdin_add_newline: false
++          changed_when: false
++          loop: "{{ rgw_instances }}"
++          when: rgw_multisite | bool
+           delegate_to: "{{ groups[mon_group_name][0] }}"
+           environment:
+             CEPHADM_IMAGE: '{{ ceph_docker_registry }}/{{ ceph_docker_image }}:{{ ceph_docker_image_tag }}'
+@@ -961,6 +976,23 @@
+             - -v
+             - /etc/pki/ca-trust:/etc/pki/ca-trust:ro
+       delegate_to: "{{ groups[mon_group_name][0] }}"
++      when: not rgw_multisite | bool
++      environment:
++        CEPHADM_IMAGE: '{{ ceph_docker_registry }}/{{ ceph_docker_image }}:{{ ceph_docker_image_tag }}'
++
++    - name: Update the placement of radosgw multisite hosts
++      ansible.builtin.command: >
++        {{ cephadm_cmd }} shell -k /etc/ceph/{{ cluster }}.client.admin.keyring --fsid {{ fsid }} --
++        ceph orch apply rgw {{ ansible_facts['hostname'] }}.{{ item.rgw_realm }}.{{ item.rgw_zone }}.{{ item.radosgw_frontend_port }}
++        --placement={{ ansible_facts['nodename'] }}
++        --realm={{ item.rgw_realm }} --zone={{ item.rgw_zone }}
++        {{ rgw_subnet if rgw_subnet is defined else '' }}
++        --port={{ item.radosgw_frontend_port }}
++        {{ '--ssl' if radosgw_frontend_ssl_certificate else '' }}
++      changed_when: false
++      loop: "{{ rgw_instances }}"
++      when: rgw_multisite | bool
++      delegate_to: "{{ groups[mon_group_name][0] }}"
+       environment:
+         CEPHADM_IMAGE: '{{ ceph_docker_registry }}/{{ ceph_docker_image }}:{{ ceph_docker_image_tag }}'
+ 
+diff --git a/roles/ceph-defaults/defaults/main.yml b/roles/ceph-defaults/defaults/main.yml
+index eb34908c8..195a1438c 100644
+--- a/roles/ceph-defaults/defaults/main.yml
++++ b/roles/ceph-defaults/defaults/main.yml
+@@ -457,6 +457,43 @@ nfs_file_gw: false
+ nfs_obj_gw: "{{ False if groups.get(mon_group_name, []) | length == 0 else True }}"
+ 
+ 
++#############
++# MULTISITE #
++#############
++
++# Changing this value allows multisite code to run
++rgw_multisite: false
++
++# If the desired multisite configuration involves only one realm, one zone group and one zone (per cluster), then the multisite variables can be set here.
++# Please see README-MULTISITE.md for more information.
++#
++# If multiple realms or multiple zonegroups or multiple zones need to be created on a cluster then,
++# the multisite config variables should be editted in their respective zone .yaml file and realm .yaml file.
++# See README-MULTISITE.md for more information.
++
++# The following Multi-site related variables should be set by the user.
++#
++# rgw_zone is set to "default" to enable compression for clusters configured without rgw multi-site
++# If multisite is configured, rgw_zone should not be set to "default".
++#
++rgw_zone: default
++
++#rgw_zonemaster: true
++#rgw_zonesecondary: false
++#rgw_zonegroup: solarsystem # should be set by the user
++#rgw_zonegroupmaster: true
++#rgw_zone_user: zone.user
++#rgw_zone_user_display_name: "Zone User"
++#rgw_realm: milkyway # should be set by the user
++#rgw_multisite_proto: "http"
++#system_access_key: 6kWkikvapSnHyE22P7nO # should be re-created by the user
++#system_secret_key: MGecsMrWtKZgngOHZdrd6d3JxGO5CPWgT2lcnpSt # should be re-created by the user
++
++# Multi-site remote pull URL variables
++#rgw_pull_port: "{{ radosgw_frontend_port }}"
++#rgw_pull_proto: "http" # should be the same as rgw_multisite_proto for the master zone cluster
++#rgw_pullhost: localhost # rgw_pullhost only needs to be declared if there is a zone secondary.
++
+ ###################
+ # CONFIG OVERRIDE #
+ ###################
+diff --git a/roles/ceph-facts/tasks/set_radosgw_address.yml b/roles/ceph-facts/tasks/set_radosgw_address.yml
+index f862b9f33..43b0cb7b0 100644
+--- a/roles/ceph-facts/tasks/set_radosgw_address.yml
++++ b/roles/ceph-facts/tasks/set_radosgw_address.yml
+@@ -63,18 +63,61 @@
+       run_once: true
+       when: ip_version == 'ipv6'
+ 
+-- name: Rgw_instances
++- name: Rgw_instances without rgw multisite
+   when:
+     - ceph_dashboard_call_item is defined or
+       inventory_hostname in groups.get(rgw_group_name, [])
++    - not rgw_multisite | bool
+   block:
+     - name: Reset rgw_instances (workaround)
+       ansible.builtin.set_fact:
+         rgw_instances: []
+ 
+-    - name: Set_fact rgw_instances
++    - name: Set_fact rgw_instances without rgw multisite
+       ansible.builtin.set_fact:
+         rgw_instances: "{{ rgw_instances | default([]) | union([{'instance_name': 'rgw' + item | string, 'radosgw_address': hostvars[ceph_dashboard_call_item | default(inventory_hostname)]['_radosgw_address'], 'radosgw_frontend_port': radosgw_frontend_port | int + item | int}]) }}"
+       with_sequence: start=0 end={{ radosgw_num_instances | int - 1 }}
+       delegate_to: "{{ ceph_dashboard_call_item if ceph_dashboard_call_item is defined else inventory_hostname }}"
+-      delegate_facts: true
++      delegate_facts: "{{ true if ceph_dashboard_call_item is defined else false }}"
++
++- name: Set_fact is_rgw_instances_defined
++  ansible.builtin.set_fact:
++    is_rgw_instances_defined: "{{ rgw_instances is defined }}"
++  when:
++    - inventory_hostname in groups.get(rgw_group_name, [])
++    - rgw_multisite | bool
++
++- name: Rgw_instances with rgw multisite
++  when:
++    - ceph_dashboard_call_item is defined or
++      inventory_hostname in groups.get(rgw_group_name, [])
++    - rgw_multisite | bool
++    - not is_rgw_instances_defined | default(False) | bool
++  block:
++    - name: Reset rgw_instances (workaround)
++      ansible.builtin.set_fact:
++        rgw_instances: []
++
++    - name: Set_fact rgw_instances with rgw multisite
++      ansible.builtin.set_fact:
++        rgw_instances: "{{ rgw_instances | default([]) | union([{ 'instance_name': 'rgw' + item | string, 'radosgw_address': hostvars[ceph_dashboard_call_item | default(inventory_hostname)]['_radosgw_address'], 'radosgw_frontend_port': radosgw_frontend_port | int + item | int, 'rgw_realm': rgw_realm | string, 'rgw_zonegroup': rgw_zonegroup | string, 'rgw_zone': rgw_zone | string, 'system_access_key': system_access_key, 'system_secret_key': system_secret_key, 'rgw_zone_user': rgw_zone_user, 'rgw_zone_user_display_name': rgw_zone_user_display_name, 'endpoint': (rgw_pull_proto + '://' + rgw_pullhost + ':' + rgw_pull_port | string) if not rgw_zonemaster | bool and rgw_zonesecondary | bool else omit }]) }}"
++      with_sequence: start=0 end={{ radosgw_num_instances | int - 1 }}
++      delegate_to: "{{ ceph_dashboard_call_item if ceph_dashboard_call_item is defined else inventory_hostname }}"
++      delegate_facts: "{{ true if ceph_dashboard_call_item is defined else false }}"
++
++- name: Set_fact rgw_instances_host
++  ansible.builtin.set_fact:
++    rgw_instances_host: '{{ rgw_instances_host | default([]) | union([item | combine({"host": inventory_hostname})]) }}'
++  with_items: '{{ rgw_instances }}'
++  when:
++    - inventory_hostname in groups.get(rgw_group_name, [])
++    - rgw_multisite | bool
++
++- name: Set_fact rgw_instances_all
++  ansible.builtin.set_fact:
++    rgw_instances_all: '{{ rgw_instances_all | default([]) | union(hostvars[item]["rgw_instances_host"]) }}'
++  with_items: "{{ groups.get(rgw_group_name, []) }}"
++  when:
++    - inventory_hostname in groups.get(rgw_group_name, [])
++    - hostvars[item]["rgw_instances_host"] is defined
++    - hostvars[item]["rgw_multisite"] | default(False) | bool
+diff --git a/roles/ceph-handler/tasks/main.yml b/roles/ceph-handler/tasks/main.yml
+index c963b0115..85242f826 100644
+--- a/roles/ceph-handler/tasks/main.yml
++++ b/roles/ceph-handler/tasks/main.yml
+@@ -59,3 +59,31 @@
+       or inventory_hostname in groups.get(mds_group_name, [])
+       or inventory_hostname in groups.get(rgw_group_name, [])
+       or inventory_hostname in groups.get(rbdmirror_group_name, [])
++
++- name: Rgw multi-instances related tasks
++  when:
++    - not docker2podman | default(false) | bool
++    - not rolling_update | default(false) | bool
++    - inventory_hostname in groups.get(rgw_group_name, [])
++    - handler_rgw_status | bool
++  block:
++    - name: Import_role ceph-config
++      ansible.builtin.import_role:
++        name: ceph-config
++
++    - name: Import_role ceph-rgw
++      ansible.builtin.import_role:
++        name: ceph-rgw
++        tasks_from: pre_requisite.yml
++
++    - name: Import_role ceph-rgw
++      ansible.builtin.import_role:
++        name: ceph-rgw
++        tasks_from: multisite.yml
++      when:
++        - rgw_multisite | bool
++        - not multisite_called_from_handler_role | default(False) | bool
++
++    - name: Set_fact multisite_called_from_handler_role
++      ansible.builtin.set_fact:
++        multisite_called_from_handler_role: true
+diff --git a/roles/ceph-rgw/tasks/main.yml b/roles/ceph-rgw/tasks/main.yml
+index e5214e650..90df7df70 100644
+--- a/roles/ceph-rgw/tasks/main.yml
++++ b/roles/ceph-rgw/tasks/main.yml
+@@ -17,9 +17,17 @@
+ - name: Include_tasks start_radosgw.yml
+   ansible.builtin.include_tasks: start_radosgw.yml
+   when:
++    - not rgw_multisite | bool
+     - not containerized_deployment | bool
+ 
+ - name: Include start_docker_rgw.yml
+   ansible.builtin.include_tasks: start_docker_rgw.yml
+   when:
++    - not rgw_multisite | bool
+     - containerized_deployment | bool
++
++- name: include_tasks multisite/main.yml
++  include_tasks: multisite/main.yml
++  when:
++    - rgw_multisite | bool
++    - not multisite_called_from_handler_role | default(False) | bool
+diff --git a/roles/ceph-rgw/tasks/multisite.yml b/roles/ceph-rgw/tasks/multisite.yml
+new file mode 100644
+index 000000000..8ccc6c04a
+--- /dev/null
++++ b/roles/ceph-rgw/tasks/multisite.yml
+@@ -0,0 +1,3 @@
++---
++- name: include_tasks multisite
++  include_tasks: multisite/main.yml
+\ No newline at end of file
+diff --git a/roles/ceph-rgw/tasks/multisite/create_zone_user.yml b/roles/ceph-rgw/tasks/multisite/create_zone_user.yml
+new file mode 100644
+index 000000000..d18cfb696
+--- /dev/null
++++ b/roles/ceph-rgw/tasks/multisite/create_zone_user.yml
+@@ -0,0 +1,28 @@
++---
++- name: create list zone_users
++  set_fact:
++    zone_users: "{{ zone_users | default([]) | union([{ 'realm': item.rgw_realm, 'zonegroup': item.rgw_zonegroup, 'zone': item.rgw_zone, 'system_access_key': item.system_access_key, 'system_secret_key': item.system_secret_key, 'user': item.rgw_zone_user, 'display_name': item.rgw_zone_user_display_name }]) }}"
++  loop: "{{ rgw_instances_all }}"
++  run_once: true
++  when:
++    - item.rgw_zonemaster | default(hostvars[item.host]['rgw_zonemaster']) | bool
++    - item.rgw_zonegroupmaster | default(hostvars[item.host]['rgw_zonegroupmaster']) | bool
++
++- name: create the zone user(s)
++  radosgw_user:
++    name: "{{ item.user }}"
++    cluster: "{{ cluster }}"
++    display_name: "{{ item.display_name }}"
++    access_key: "{{ item.system_access_key }}"
++    secret_key: "{{ item.system_secret_key }}"
++    realm: "{{ item.realm }}"
++    zonegroup: "{{ item.zonegroup }}"
++    zone: "{{ item.zone }}"
++    system: true
++  delegate_to: "{{ groups[mon_group_name][0] }}"
++  run_once: true
++  loop: "{{ zone_users }}"
++  when: zone_users is defined
++  environment:
++    CEPH_CONTAINER_IMAGE: "{{ ceph_docker_registry + '/' + ceph_docker_image + ':' + ceph_docker_image_tag if containerized_deployment | bool else None }}"
++    CEPH_CONTAINER_BINARY: "{{ container_binary }}"
+diff --git a/roles/ceph-rgw/tasks/multisite/main.yml b/roles/ceph-rgw/tasks/multisite/main.yml
+new file mode 100644
+index 000000000..ade0bf760
+--- /dev/null
++++ b/roles/ceph-rgw/tasks/multisite/main.yml
+@@ -0,0 +1,65 @@
++---
++- name: set global config
++  ceph_config:
++    action: set
++    who: "client.rgw.{{ _rgw_hostname + '.' + item.0.instance_name }}"
++    option: "{{ item.1 }}"
++    value: "{{ item.0[item.1] }}"
++  environment:
++    CEPH_CONTAINER_IMAGE: "{{ ceph_docker_registry + '/' + ceph_docker_image + ':' + ceph_docker_image_tag if containerized_deployment | bool else None }}"
++    CEPH_CONTAINER_BINARY: "{{ container_binary }}"
++  delegate_to: "{{ groups[mon_group_name][0] }}"
++  run_once: true
++  with_nested:
++    - "{{ rgw_instances }}"
++    - [ 'rgw_realm', 'rgw_zonegroup', 'rgw_zone']
++
++- name: set_fact realms
++  set_fact:
++    realms: '{{ realms | default([]) | union([item.rgw_realm]) }}'
++  run_once: true
++  loop: "{{ rgw_instances_all }}"
++  when: item.rgw_zonemaster | default(hostvars[item.host]['rgw_zonemaster']) | bool
++
++- name: create list zonegroups
++  set_fact:
++    zonegroups: "{{ zonegroups | default([]) | union([{ 'realm': item.rgw_realm, 'zonegroup': item.rgw_zonegroup, 'is_master': item.rgw_zonegroupmaster | default(hostvars[item.host]['rgw_zonegroupmaster']) }]) }}"
++  run_once: true
++  loop: "{{ rgw_instances_all }}"
++  when: item.rgw_zonegroupmaster | default(hostvars[item.host]['rgw_zonegroupmaster']) | bool
++
++- name: create list zones
++  set_fact:
++    zones: "{{ zones | default([]) | union([{ 'realm': item.rgw_realm, 'zonegroup': item.rgw_zonegroup, 'zone': item.rgw_zone, 'is_master': item.rgw_zonemaster | default(hostvars[item.host]['rgw_zonemaster']), 'system_access_key': item.system_access_key, 'system_secret_key': item.system_secret_key }]) }}"
++  run_once: true
++  loop: "{{ rgw_instances_all }}"
++
++- name: create a list of dicts with each rgw endpoint and it's zone
++  set_fact:
++    zone_endpoint_pairs: "{{ zone_endpoint_pairs | default([]) | union([{ 'endpoint': hostvars[item.host]['rgw_multisite_proto'] + '://' + (item.radosgw_address if hostvars[item.host]['rgw_multisite_proto'] == 'http' else hostvars[item.host]['ansible_facts']['fqdn']) + ':' + item.radosgw_frontend_port | string, 'rgw_zone': item.rgw_zone, 'rgw_realm': item.rgw_realm, 'rgw_zonegroup': item.rgw_zonegroup, 'rgw_zonemaster': item.rgw_zonemaster | default(hostvars[item.host]['rgw_zonemaster']) }]) }}"
++  loop: "{{ rgw_instances_all }}"
++  run_once: true
++
++- name: create a list of zones and all their endpoints
++  set_fact:
++    zone_endpoints_list: "{{ zone_endpoints_list | default([]) | union([{'zone': item.rgw_zone, 'zonegroup': item.rgw_zonegroup, 'realm': item.rgw_realm, 'is_master': item.rgw_zonemaster, 'endpoints': ','.join(zone_endpoint_pairs | selectattr('rgw_zone','match','^'+item.rgw_zone+'$') | selectattr('rgw_realm','match','^'+item.rgw_realm+'$') | selectattr('rgw_zonegroup', 'match','^'+item.rgw_zonegroup+'$') | map(attribute='endpoint'))}]) }}"
++  loop: "{{ zone_endpoint_pairs }}"
++  run_once: true
++
++# Include the tasks depending on the zone type
++- name: include_tasks master.yml
++  include_tasks: master.yml
++
++- name: include_tasks secondary.yml
++  include_tasks: secondary.yml
++  when: deploy_secondary_zones | default(True) | bool
++
++- name: include_tasks start_radosgw.yml
++  include_tasks: ../start_radosgw.yml
++  when:
++    - not containerized_deployment | bool
++
++- name: include_tasks start_docker_rgw.yml
++  include_tasks: ../start_docker_rgw.yml
++  when:
++    - containerized_deployment | bool
+diff --git a/roles/ceph-rgw/tasks/multisite/master.yml b/roles/ceph-rgw/tasks/multisite/master.yml
+new file mode 100644
+index 000000000..8b34565fb
+--- /dev/null
++++ b/roles/ceph-rgw/tasks/multisite/master.yml
+@@ -0,0 +1,93 @@
++---
++- name: create the realm(s)
++  radosgw_realm:
++    name: "{{ item }}"
++    cluster: "{{ cluster }}"
++    default: "{{ true if realms | length == 1 else false }}"
++  delegate_to: "{{ groups[mon_group_name][0] }}"
++  run_once: true
++  loop: "{{ realms }}"
++  when: realms is defined
++  environment:
++    CEPH_CONTAINER_IMAGE: "{{ ceph_docker_registry + '/' + ceph_docker_image + ':' + ceph_docker_image_tag if containerized_deployment | bool else None }}"
++    CEPH_CONTAINER_BINARY: "{{ container_binary }}"
++
++- name: create zonegroup(s)
++  radosgw_zonegroup:
++    name: "{{ item.zonegroup }}"
++    cluster: "{{ cluster }}"
++    realm: "{{ item.realm }}"
++    default: "{{ true if zonegroups | length == 1 else false }}"
++    master: "{{ true if item.is_master | bool else false }}"
++  delegate_to: "{{ groups[mon_group_name][0] }}"
++  run_once: true
++  loop: "{{ zonegroups }}"
++  when: zonegroups is defined
++  environment:
++    CEPH_CONTAINER_IMAGE: "{{ ceph_docker_registry + '/' + ceph_docker_image + ':' + ceph_docker_image_tag if containerized_deployment | bool else None }}"
++    CEPH_CONTAINER_BINARY: "{{ container_binary }}"
++
++- name: create the master zone(s)
++  radosgw_zone:
++    name: "{{ item.zone }}"
++    cluster: "{{ cluster }}"
++    realm: "{{ item.realm }}"
++    zonegroup: "{{ item.zonegroup }}"
++    access_key: "{{ item.system_access_key }}"
++    secret_key: "{{ item.system_secret_key }}"
++    default: "{{ true if zones | length == 1 else false }}"
++    master: true
++  delegate_to: "{{ groups[mon_group_name][0] }}"
++  run_once: true
++  loop: "{{ zones }}"
++  when:
++    - zones is defined
++    - item.is_master | bool
++  environment:
++    CEPH_CONTAINER_IMAGE: "{{ ceph_docker_registry + '/' + ceph_docker_image + ':' + ceph_docker_image_tag if containerized_deployment | bool else None }}"
++    CEPH_CONTAINER_BINARY: "{{ container_binary }}"
++
++- name: add endpoints to their zone groups(s)
++  radosgw_zonegroup:
++    name: "{{ item.zonegroup }}"
++    cluster: "{{ cluster }}"
++    realm: "{{ item.realm }}"
++    endpoints: "{{ item.endpoints.split(',') }}"
++  delegate_to: "{{ groups[mon_group_name][0] }}"
++  run_once: true
++  loop: "{{ zone_endpoints_list }}"
++  when:
++    - zone_endpoints_list is defined
++    - item.is_master | bool
++  environment:
++    CEPH_CONTAINER_IMAGE: "{{ ceph_docker_registry + '/' + ceph_docker_image + ':' + ceph_docker_image_tag if containerized_deployment | bool else None }}"
++    CEPH_CONTAINER_BINARY: "{{ container_binary }}"
++
++- name: add endpoints to their zone(s)
++  radosgw_zone:
++    name: "{{ item.zone }}"
++    cluster: "{{ cluster }}"
++    realm: "{{ item.realm }}"
++    zonegroup: "{{ item.zonegroup }}"
++    endpoints: "{{ item.endpoints.split(',') }}"
++  delegate_to: "{{ groups[mon_group_name][0] }}"
++  run_once: true
++  loop: "{{ zone_endpoints_list }}"
++  when:
++    - zone_endpoints_list is defined
++    - item.is_master | bool
++  environment:
++    CEPH_CONTAINER_IMAGE: "{{ ceph_docker_registry + '/' + ceph_docker_image + ':' + ceph_docker_image_tag if containerized_deployment | bool else None }}"
++    CEPH_CONTAINER_BINARY: "{{ container_binary }}"
++
++- name: update period for zone creation
++  command: "{{ container_exec_cmd }} radosgw-admin --cluster={{ cluster }} --rgw-realm={{ item.realm }} --rgw-zonegroup={{ item.zonegroup }} --rgw-zone={{ item.zone }} period update --commit"
++  delegate_to: "{{ groups[mon_group_name][0] }}"
++  run_once: true
++  loop: "{{ zone_endpoints_list }}"
++  when:
++    - zone_endpoints_list is defined
++    - item.is_master | bool
++
++- name: include_tasks create_zone_user.yml
++  include_tasks: create_zone_user.yml
+diff --git a/roles/ceph-rgw/tasks/multisite/secondary.yml b/roles/ceph-rgw/tasks/multisite/secondary.yml
+new file mode 100644
+index 000000000..b1b759fc0
+--- /dev/null
++++ b/roles/ceph-rgw/tasks/multisite/secondary.yml
+@@ -0,0 +1,90 @@
++---
++- name: create list secondary_realms
++  set_fact:
++    secondary_realms: "{{ secondary_realms | default([]) | union([{ 'realm': item.rgw_realm, 'zonegroup': item.rgw_zonegroup, 'zone': item.rgw_zone, 'endpoint': item.endpoint, 'system_access_key': item.system_access_key, 'system_secret_key': item.system_secret_key, 'is_master': item.rgw_zonemaster | default(hostvars[item.host]['rgw_zonemaster']) }]) }}"
++  loop: "{{ rgw_instances_all }}"
++  run_once: true
++  when: not item.rgw_zonemaster | default(hostvars[item.host]['rgw_zonemaster']) | bool
++
++- name: ensure connection to primary cluster from mon
++  uri:
++    url: "{{ item.endpoint }}"
++  delegate_to: "{{ groups[mon_group_name][0] }}"
++  run_once: true
++  loop: "{{ secondary_realms }}"
++  when: secondary_realms is defined
++
++- name: ensure connection to primary cluster from rgw
++  uri:
++    url: "{{ item.endpoint }}"
++  loop: "{{ rgw_instances }}"
++  when: not item.rgw_zonemaster | default(rgw_zonemaster) | bool
++
++- name: fetch the realm(s)
++  radosgw_realm:
++    name: "{{ item.realm }}"
++    cluster: "{{ cluster }}"
++    url: "{{ item.endpoint }}"
++    access_key: "{{ item.system_access_key }}"
++    secret_key: "{{ item.system_secret_key }}"
++    state: pull
++  delegate_to: "{{ groups[mon_group_name][0] }}"
++  run_once: true
++  loop: "{{ secondary_realms }}"
++  when: secondary_realms is defined
++  environment:
++    CEPH_CONTAINER_IMAGE: "{{ ceph_docker_registry + '/' + ceph_docker_image + ':' + ceph_docker_image_tag if containerized_deployment | bool else None }}"
++    CEPH_CONTAINER_BINARY: "{{ container_binary }}"
++
++- name: get the period(s)
++  command: "{{ container_exec_cmd }} radosgw-admin period get --cluster={{ cluster }} --rgw-realm={{ item.realm }}"
++  delegate_to: "{{ groups[mon_group_name][0] }}"
++  run_once: true
++  loop: "{{ secondary_realms }}"
++  when: secondary_realms is defined
++
++- name: create the zone(s)
++  radosgw_zone:
++    name: "{{ item.zone }}"
++    cluster: "{{ cluster }}"
++    realm: "{{ item.realm }}"
++    zonegroup: "{{ item.zonegroup }}"
++    access_key: "{{ item.system_access_key }}"
++    secret_key: "{{ item.system_secret_key }}"
++    default: "{{ true if zones | length == 1 else false }}"
++    master: false
++  delegate_to: "{{ groups[mon_group_name][0] }}"
++  run_once: true
++  loop: "{{ zones }}"
++  when:
++    - zones is defined
++    - not item.is_master | bool
++  environment:
++    CEPH_CONTAINER_IMAGE: "{{ ceph_docker_registry + '/' + ceph_docker_image + ':' + ceph_docker_image_tag if containerized_deployment | bool else None }}"
++    CEPH_CONTAINER_BINARY: "{{ container_binary }}"
++
++- name: add endpoints to their zone(s)
++  radosgw_zone:
++    name: "{{ item.zone }}"
++    cluster: "{{ cluster }}"
++    realm: "{{ item.realm }}"
++    zonegroup: "{{ item.zonegroup }}"
++    endpoints: "{{ item.endpoints.split(',') }}"
++  delegate_to: "{{ groups[mon_group_name][0] }}"
++  run_once: true
++  loop: "{{ zone_endpoints_list }}"
++  when:
++    - zone_endpoints_list is defined
++    - not item.is_master | bool
++  environment:
++    CEPH_CONTAINER_IMAGE: "{{ ceph_docker_registry + '/' + ceph_docker_image + ':' + ceph_docker_image_tag if containerized_deployment | bool else None }}"
++    CEPH_CONTAINER_BINARY: "{{ container_binary }}"
++
++- name: update period for zone creation
++  command: "{{ container_exec_cmd }} radosgw-admin --cluster={{ cluster }} --rgw-realm={{ item.realm }} --rgw-zonegroup={{ item.zonegroup }} --rgw-zone={{ item.zone }} period update --commit"
++  delegate_to: "{{ groups[mon_group_name][0] }}"
++  run_once: true
++  loop: "{{ zone_endpoints_list }}"
++  when:
++    - zone_endpoints_list is defined
++    - not item.is_master | bool
+diff --git a/roles/ceph-rgw/tasks/start_radosgw.yml b/roles/ceph-rgw/tasks/start_radosgw.yml
+index 5de184fb1..3fb25b9e1 100644
+--- a/roles/ceph-rgw/tasks/start_radosgw.yml
++++ b/roles/ceph-rgw/tasks/start_radosgw.yml
+@@ -21,6 +21,10 @@
+     enabled: true
+     masked: false
+   with_items: "{{ rgw_instances }}"
++  when:
++    - not rgw_multisite | bool or
++      ((rgw_multisite | bool and item.rgw_zonesecondary | default(rgw_zonesecondary) | bool and deploy_secondary_zones | default(True)) or
++      (rgw_multisite | bool and item.rgw_zonemaster | default(rgw_zonemaster)))
+ 
+ - name: Enable the ceph-radosgw.target service
+   ansible.builtin.systemd:
+diff --git a/roles/ceph-validate/tasks/check_rgw_multisite.yml b/roles/ceph-validate/tasks/check_rgw_multisite.yml
+new file mode 100644
+index 000000000..7679cd86f
+--- /dev/null
++++ b/roles/ceph-validate/tasks/check_rgw_multisite.yml
+@@ -0,0 +1,65 @@
++---
++- name: Fail if rgw_zone is default
++  ansible.builtin.fail:
++    msg: "rgw_zone cannot be named 'default'"
++  loop: "{{ rgw_instances }}"
++  when: item.rgw_zone is undefined or item.rgw_zone == 'default'
++
++- name: Fail if either rgw_zonemaster or rgw_zonesecondary is undefined
++  ansible.builtin.fail:
++    msg: "rgw_zonemaster and rgw_zonesecondary must be defined"
++  loop: "{{ rgw_instances }}"
++  when: item.rgw_zonemaster | default(rgw_zonemaster) is undefined or item.rgw_zonesecondary | default(rgw_zonesecondary) is undefined
++
++- name: Fail if rgw_zonemaster and rgw_zonesecondary are both true
++  ansible.builtin.fail:
++    msg: "rgw_zonemaster and rgw_zonesecondary cannot both be true"
++  loop: "{{ rgw_instances }}"
++  when:
++    - item.rgw_zonemaster | default(rgw_zonemaster) | bool
++    - item.rgw_zonesecondary | default(rgw_zonesecondary) | bool
++
++- name: Fail if rgw_zonegroup is not set
++  ansible.builtin.fail:
++    msg: "rgw_zonegroup has not been set by the user"
++  loop: "{{ rgw_instances }}"
++  when: item.rgw_zonegroup is undefined
++
++- name: Fail if rgw_zone_user is not set
++  ansible.builtin.fail:
++    msg: "rgw_zone_user has not been set by the user"
++  loop: "{{ rgw_instances }}"
++  when: item.rgw_zone_user is undefined
++
++- name: Fail if rgw_zone_user_display_name is not set
++  ansible.builtin.fail:
++    msg: "rgw_zone_user_display_name has not been set by the user"
++  loop: "{{ rgw_instances }}"
++  when: item.rgw_zone_user_display_name is undefined
++
++- name: Fail if rgw_realm is not set
++  ansible.builtin.fail:
++    msg: "rgw_realm has not been set by the user"
++  loop: "{{ rgw_instances }}"
++  when: item.rgw_realm is undefined
++
++- name: Fail if system_access_key is not set
++  ansible.builtin.fail:
++    msg: "system_access_key has not been set by the user"
++  loop: "{{ rgw_instances }}"
++  when: item.system_access_key is undefined
++
++- name: Fail if system_secret_key is not set
++  ansible.builtin.fail:
++    msg: "system_secret_key has not been set by the user"
++  loop: "{{ rgw_instances }}"
++  when: item.system_secret_key is undefined
++
++- name: Fail if endpoint is not set
++  ansible.builtin.fail:
++    msg: "endpoint has not been set by the user"
++  loop: "{{ rgw_instances }}"
++  when:
++    - item.rgw_zonesecondary | default(rgw_zonesecondary) | bool
++    - rgw_pull_port is undefined and rgw_pullhost is undefined and item.rgw_pull_proto | default(rgw_pull_proto) is undefined
++    - item.endpoint is undefined
+diff --git a/roles/ceph-validate/tasks/main.yml b/roles/ceph-validate/tasks/main.yml
+index 885ffb36a..95e7aaeba 100644
+--- a/roles/ceph-validate/tasks/main.yml
++++ b/roles/ceph-validate/tasks/main.yml
+@@ -112,6 +112,12 @@
+     - inventory_hostname in groups.get(rgw_group_name, [])
+     - rgw_create_pools is defined
+ 
++- name: Include check_rgw_multisite.yml
++  ansible.builtin.include_tasks: check_rgw_multisite.yml
++  when:
++    - inventory_hostname in groups.get(rgw_group_name, [])
++    - rgw_multisite | bool
++
+ - name: Include check_nfs.yml
+   ansible.builtin.include_tasks: check_nfs.yml
+   when: inventory_hostname in groups.get(nfs_group_name, [])
+diff --git a/tests/functional/rgw-multisite/Vagrantfile b/tests/functional/rgw-multisite/Vagrantfile
+new file mode 120000
+index 000000000..706a5bb47
+--- /dev/null
++++ b/tests/functional/rgw-multisite/Vagrantfile
+@@ -0,0 +1 @@
++../../../Vagrantfile
+\ No newline at end of file
+diff --git a/tests/functional/rgw-multisite/ceph-override.json b/tests/functional/rgw-multisite/ceph-override.json
+new file mode 120000
+index 000000000..fe2ff40d6
+--- /dev/null
++++ b/tests/functional/rgw-multisite/ceph-override.json
+@@ -0,0 +1 @@
++../all_daemons/ceph-override.json
+\ No newline at end of file
+diff --git a/tests/functional/rgw-multisite/container/Vagrantfile b/tests/functional/rgw-multisite/container/Vagrantfile
+new file mode 120000
+index 000000000..16076e424
+--- /dev/null
++++ b/tests/functional/rgw-multisite/container/Vagrantfile
+@@ -0,0 +1 @@
++../../../../Vagrantfile
+\ No newline at end of file
+diff --git a/tests/functional/rgw-multisite/container/ceph-override.json b/tests/functional/rgw-multisite/container/ceph-override.json
+new file mode 120000
+index 000000000..8417cc0c9
+--- /dev/null
++++ b/tests/functional/rgw-multisite/container/ceph-override.json
+@@ -0,0 +1 @@
++../../all_daemons/ceph-override.json
+\ No newline at end of file
+diff --git a/tests/functional/rgw-multisite/container/group_vars/all b/tests/functional/rgw-multisite/container/group_vars/all
+new file mode 100644
+index 000000000..9f4997757
+--- /dev/null
++++ b/tests/functional/rgw-multisite/container/group_vars/all
+@@ -0,0 +1,33 @@
++---
++docker: True
++containerized_deployment: true
++ceph_origin: repository
++ceph_repository: community
++cluster: ceph
++public_network: "192.168.105.0/24"
++cluster_network: "192.168.106.0/24"
++monitor_interface: "{{ 'eth1' if ansible_facts['distribution'] == 'CentOS' else 'ens6' }}"
++radosgw_interface: "{{ 'eth1' if ansible_facts['distribution'] == 'CentOS' else 'ens6' }}"
++journal_size: 100
++osd_objectstore: "bluestore"
++copy_admin_key: true
++# test-volume is created by tests/functional/lvm_setup.yml from /dev/sdb
++lvm_volumes:
++  - data: data-lv1
++    data_vg: test_group
++  - data: data-lv2
++    data_vg: test_group
++    db: journal1
++    db_vg: journals
++os_tuning_params:
++  - { name: fs.file-max, value: 26234859 }
++ceph_conf_overrides:
++  global:
++    mon_allow_pool_size_one: true
++    mon_warn_on_pool_no_redundancy: false
++    osd_pool_default_size: 1
++    mon_max_pg_per_osd: 512
++dashboard_enabled: False
++ceph_docker_registry: quay.io
++ceph_docker_image: ceph/daemon-base
++ceph_docker_image_tag: latest-main
+diff --git a/tests/functional/rgw-multisite/container/group_vars/rgws b/tests/functional/rgw-multisite/container/group_vars/rgws
+new file mode 100644
+index 000000000..1a9ee6428
+--- /dev/null
++++ b/tests/functional/rgw-multisite/container/group_vars/rgws
+@@ -0,0 +1,13 @@
++---
++copy_admin_key: true
++# Enable Multisite support
++rgw_multisite: true
++rgw_multisite_proto: http
++rgw_create_pools:
++  foo:
++    pg_num: 16
++    type: replicated
++  bar:
++    pg_num: 16
++rgw_override_bucket_index_max_shards: 16
++rgw_bucket_default_quota_max_objects: 1638400
+diff --git a/tests/functional/rgw-multisite/container/host_vars/osd0 b/tests/functional/rgw-multisite/container/host_vars/osd0
+new file mode 100644
+index 000000000..15941276f
+--- /dev/null
++++ b/tests/functional/rgw-multisite/container/host_vars/osd0
+@@ -0,0 +1,32 @@
++---
++rgw_instances:
++  - instance_name: 'rgw0'
++    rgw_zonemaster: True
++    rgw_zonesecondary: False
++    rgw_zonegroupmaster: True
++    rgw_realm: 'canada'
++    rgw_zonegroup: 'zonegroup-canada'
++    rgw_zone: montreal-00
++    radosgw_address: "{{ _radosgw_address }}"
++    radosgw_frontend_port: 8080
++    rgw_zone_user: jacques.chirac
++    rgw_zone_user_display_name: "Jacques Chirac"
++    system_access_key: P9Eb6S8XNyo4dtZZUUMy
++    system_secret_key: qqHCUtfdNnpHq3PZRHW5un9l0bEBM812Uhow0XfB
++  - instance_name: 'rgw1'
++    rgw_zonemaster: false
++    rgw_zonesecondary: true
++    rgw_zonegroupmaster: false
++    rgw_realm: 'france'
++    rgw_zonegroup: 'zonegroup-france'
++    rgw_zone: montreal-01
++    radosgw_address: "{{ _radosgw_address }}"
++    radosgw_frontend_port: 8081
++    rgw_zone_user: edward.lewis
++    rgw_zone_user_display_name: "Edward Lewis"
++    system_access_key: yu17wkvAx3B8Wyn08XoF
++    system_secret_key: 5YZfaSUPqxSNIkZQQA3lBZ495hnIV6k2HAz710BY
++    endpoint: http://192.168.107.12:8081
++# functional testing
++rgw_multisite_endpoint_addr: 192.168.105.12
++radosgw_num_instances: 2
+diff --git a/tests/functional/rgw-multisite/container/host_vars/rgw0 b/tests/functional/rgw-multisite/container/host_vars/rgw0
+new file mode 100644
+index 000000000..92624d1ea
+--- /dev/null
++++ b/tests/functional/rgw-multisite/container/host_vars/rgw0
+@@ -0,0 +1,29 @@
++---
++rgw_zonemaster: true
++rgw_zonesecondary: false
++rgw_zonegroupmaster: true
++rgw_multisite_proto: http
++rgw_instances:
++  - instance_name: 'rgw0'
++    rgw_realm: 'foo'
++    rgw_zonegroup: 'zonegroup123'
++    rgw_zone: 'gotham_city'
++    radosgw_address: "{{ _radosgw_address }}"
++    radosgw_frontend_port: 8080
++    rgw_zone_user: batman
++    rgw_zone_user_display_name: "Batman"
++    system_access_key: 9WA1GN33IUYC717S8KB2
++    system_secret_key: R2vWXyboYw9nluehMgtATBGDBZSuWLnR0M4xNa1W
++  - instance_name: 'rgw1'
++    rgw_realm: 'bar'
++    rgw_zonegroup: 'zonegroup456'
++    rgw_zone: 'metropolis'
++    radosgw_address: "{{ _radosgw_address }}"
++    radosgw_frontend_port: 8081
++    rgw_zone_user: superman
++    rgw_zone_user_display_name: "Superman"
++    system_access_key: S96CJL44E29AN91Y3ZC5
++    system_secret_key: ha7yWiIi7bSV2vAqMBfKjYIVKMfOBaGkWrUZifRt
++# functional testing
++rgw_multisite_endpoint_addr: 192.168.105.11
++radosgw_num_instances: 2
+diff --git a/tests/functional/rgw-multisite/container/hosts b/tests/functional/rgw-multisite/container/hosts
+new file mode 100644
+index 000000000..2aeb021d7
+--- /dev/null
++++ b/tests/functional/rgw-multisite/container/hosts
+@@ -0,0 +1,9 @@
++[mons]
++mon0
++
++[osds]
++osd0
++
++[rgws]
++osd0
++rgw0
+\ No newline at end of file
+diff --git a/tests/functional/rgw-multisite/container/secondary/Vagrantfile b/tests/functional/rgw-multisite/container/secondary/Vagrantfile
+new file mode 120000
+index 000000000..dfd7436c9
+--- /dev/null
++++ b/tests/functional/rgw-multisite/container/secondary/Vagrantfile
+@@ -0,0 +1 @@
++../../../../../Vagrantfile
+\ No newline at end of file
+diff --git a/tests/functional/rgw-multisite/container/secondary/group_vars/all b/tests/functional/rgw-multisite/container/secondary/group_vars/all
+new file mode 100644
+index 000000000..eec0e9661
+--- /dev/null
++++ b/tests/functional/rgw-multisite/container/secondary/group_vars/all
+@@ -0,0 +1,33 @@
++---
++docker: True
++containerized_deployment: true
++ceph_origin: repository
++ceph_repository: community
++cluster: ceph
++public_network: "192.168.107.0/24"
++cluster_network: "192.168.108.0/24"
++monitor_interface: "{{ 'eth1' if ansible_facts['distribution'] == 'CentOS' else 'ens6' }}"
++radosgw_interface: "{{ 'eth1' if ansible_facts['distribution'] == 'CentOS' else 'ens6' }}"
++journal_size: 100
++osd_objectstore: "bluestore"
++copy_admin_key: true
++# test-volume is created by tests/functional/lvm_setup.yml from /dev/sdb
++lvm_volumes:
++  - data: data-lv1
++    data_vg: test_group
++  - data: data-lv2
++    data_vg: test_group
++    db: journal1
++    db_vg: journals
++os_tuning_params:
++  - { name: fs.file-max, value: 26234859 }
++ceph_conf_overrides:
++  global:
++    mon_allow_pool_size_one: true
++    mon_warn_on_pool_no_redundancy: false
++    osd_pool_default_size: 1
++    mon_max_pg_per_osd: 512
++dashboard_enabled: False
++ceph_docker_registry: quay.io
++ceph_docker_image: ceph/daemon-base
++ceph_docker_image_tag: latest-main
+diff --git a/tests/functional/rgw-multisite/container/secondary/group_vars/rgws b/tests/functional/rgw-multisite/container/secondary/group_vars/rgws
+new file mode 100644
+index 000000000..4a30a9f46
+--- /dev/null
++++ b/tests/functional/rgw-multisite/container/secondary/group_vars/rgws
+@@ -0,0 +1,12 @@
++---
++# Enable Multisite support
++rgw_multisite: true
++rgw_multisite_proto: http
++rgw_create_pools:
++  foo:
++    pg_num: 16
++    type: replicated
++  bar:
++    pg_num: 16
++rgw_override_bucket_index_max_shards: 16
++rgw_bucket_default_quota_max_objects: 1638400
+diff --git a/tests/functional/rgw-multisite/container/secondary/host_vars/osd0 b/tests/functional/rgw-multisite/container/secondary/host_vars/osd0
+new file mode 100644
+index 000000000..5b7403534
+--- /dev/null
++++ b/tests/functional/rgw-multisite/container/secondary/host_vars/osd0
+@@ -0,0 +1,32 @@
++---
++rgw_instances:
++  - instance_name: 'rgw0'
++    rgw_zonemaster: false
++    rgw_zonesecondary: true
++    rgw_zonegroupmaster: false
++    rgw_realm: 'canada'
++    rgw_zonegroup: 'zonegroup-canada'
++    rgw_zone: paris-00
++    radosgw_address: "{{ _radosgw_address }}"
++    radosgw_frontend_port: 8080
++    rgw_zone_user: jacques.chirac
++    rgw_zone_user_display_name: "Jacques Chirac"
++    system_access_key: P9Eb6S8XNyo4dtZZUUMy
++    system_secret_key: qqHCUtfdNnpHq3PZRHW5un9l0bEBM812Uhow0XfB
++    endpoint: http://192.168.105.12:8080
++  - instance_name: 'rgw1'
++    rgw_zonemaster: True
++    rgw_zonesecondary: False
++    rgw_zonegroupmaster: True
++    rgw_realm: 'france'
++    rgw_zonegroup: 'zonegroup-france'
++    rgw_zone: paris-01
++    radosgw_address: "{{ _radosgw_address }}"
++    radosgw_frontend_port: 8081
++    rgw_zone_user: edward.lewis
++    rgw_zone_user_display_name: "Edward Lewis"
++    system_access_key: yu17wkvAx3B8Wyn08XoF
++    system_secret_key: 5YZfaSUPqxSNIkZQQA3lBZ495hnIV6k2HAz710BY
++# functional testing
++rgw_multisite_endpoint_addr: 192.168.107.12
++radosgw_num_instances: 2
+diff --git a/tests/functional/rgw-multisite/container/secondary/host_vars/rgw0 b/tests/functional/rgw-multisite/container/secondary/host_vars/rgw0
+new file mode 100644
+index 000000000..b95ca726c
+--- /dev/null
++++ b/tests/functional/rgw-multisite/container/secondary/host_vars/rgw0
+@@ -0,0 +1,31 @@
++---
++rgw_zonemaster: false
++rgw_zonesecondary: true
++rgw_zonegroupmaster: false
++rgw_multisite_proto: http
++rgw_instances:
++  - instance_name: 'rgw0'
++    rgw_realm: 'foo'
++    rgw_zonegroup: 'zonegroup123'
++    rgw_zone: 'gotham_city-secondary'
++    radosgw_address: "{{ _radosgw_address }}"
++    radosgw_frontend_port: 8080
++    rgw_zone_user: batman
++    rgw_zone_user_display_name: "Batman"
++    system_access_key: 9WA1GN33IUYC717S8KB2
++    system_secret_key: R2vWXyboYw9nluehMgtATBGDBZSuWLnR0M4xNa1W
++    endpoint: http://192.168.105.11:8080
++  - instance_name: 'rgw1'
++    rgw_realm: 'bar'
++    rgw_zonegroup: 'zonegroup456'
++    rgw_zone: 'metropolis-secondary'
++    radosgw_address: "{{ _radosgw_address }}"
++    radosgw_frontend_port: 8081
++    rgw_zone_user: superman
++    rgw_zone_user_display_name: "Superman"
++    system_access_key: S96CJL44E29AN91Y3ZC5
++    system_secret_key: ha7yWiIi7bSV2vAqMBfKjYIVKMfOBaGkWrUZifRt
++    endpoint: http://192.168.105.11:8081
++# functional testing
++rgw_multisite_endpoint_addr: 192.168.107.11
++radosgw_num_instances: 2
+diff --git a/tests/functional/rgw-multisite/container/secondary/hosts b/tests/functional/rgw-multisite/container/secondary/hosts
+new file mode 100644
+index 000000000..2aeb021d7
+--- /dev/null
++++ b/tests/functional/rgw-multisite/container/secondary/hosts
+@@ -0,0 +1,9 @@
++[mons]
++mon0
++
++[osds]
++osd0
++
++[rgws]
++osd0
++rgw0
+\ No newline at end of file
+diff --git a/tests/functional/rgw-multisite/container/secondary/vagrant_variables.yml b/tests/functional/rgw-multisite/container/secondary/vagrant_variables.yml
+new file mode 100644
+index 000000000..d6d710b9e
+--- /dev/null
++++ b/tests/functional/rgw-multisite/container/secondary/vagrant_variables.yml
+@@ -0,0 +1,71 @@
++---
++
++# DEPLOY CONTAINERIZED DAEMONS
++docker: true
++
++# DEFINE THE NUMBER OF VMS TO RUN
++mon_vms: 1
++osd_vms: 1
++mds_vms: 0
++rgw_vms: 1
++nfs_vms: 0
++grafana_server_vms: 0
++rbd_mirror_vms: 0
++client_vms: 0
++iscsi_gw_vms: 0
++mgr_vms: 0
++
++# INSTALL SOURCE OF CEPH
++# valid values are 'stable' and 'dev'
++ceph_install_source: stable
++
++# SUBNETS TO USE FOR THE VMS
++public_subnet: 192.168.107
++cluster_subnet: 192.168.108
++
++# MEMORY
++# set 1024 for CentOS
++memory: 1024
++
++# Ethernet interface name
++# use eth1 for libvirt and ubuntu precise, enp0s8 for CentOS and ubuntu xenial
++eth: 'eth1'
++
++# Disks
++# For libvirt use disks: "[ '/dev/vdb', '/dev/vdc' ]"
++# For CentOS7 use disks: "[ '/dev/sda', '/dev/sdb' ]"
++disks: "[ '/dev/sdb', '/dev/sdc' ]"
++
++# VAGRANT BOX
++# Ceph boxes are *strongly* suggested. They are under better control and will
++# not get updated frequently unless required for build systems. These are (for
++# now):
++#
++# * ceph/ubuntu-xenial
++#
++# Ubuntu: ceph/ubuntu-xenial bento/ubuntu-16.04 or ubuntu/trusty64 or ubuntu/wily64
++# CentOS: bento/centos-7.1 or puppetlabs/centos-7.0-64-puppet
++# libvirt CentOS: centos/7
++# parallels Ubuntu: parallels/ubuntu-14.04
++# Debian: deb/jessie-amd64 - be careful the storage controller is named 'SATA Controller'
++# For more boxes have a look at:
++#   - https://atlas.hashicorp.com/boxes/search?utf8=✓&sort=&provider=virtualbox&q=
++#   - https://download.gluster.org/pub/gluster/purpleidea/vagrant/
++vagrant_box: centos/atomic-host
++#ssh_private_key_path: "~/.ssh/id_rsa"
++# The sync directory changes based on vagrant box
++# Set to /home/vagrant/sync for Centos/7, /home/{ user }/vagrant for openstack and defaults to /vagrant
++#vagrant_sync_dir: /home/vagrant/sync
++vagrant_sync_dir: /vagrant
++# Disables synced folder creation. Not needed for testing, will skip mounting
++# the vagrant directory on the remote box regardless of the provider.
++vagrant_disable_synced_folder: true
++# VAGRANT URL
++# This is a URL to download an image from an alternate location.  vagrant_box
++# above should be set to the filename of the image.
++# Fedora virtualbox: https://download.fedoraproject.org/pub/fedora/linux/releases/22/Cloud/x86_64/Images/Fedora-Cloud-Base-Vagrant-22-20150521.x86_64.vagrant-virtualbox.box
++# Fedora libvirt: https://download.fedoraproject.org/pub/fedora/linux/releases/22/Cloud/x86_64/Images/Fedora-Cloud-Base-Vagrant-22-20150521.x86_64.vagrant-libvirt.box
++# vagrant_box_url: https://download.fedoraproject.org/pub/fedora/linux/releases/22/Cloud/x86_64/Images/Fedora-Cloud-Base-Vagrant-22-20150521.x86_64.vagrant-virtualbox.box
++
++os_tuning_params:
++  - { name: fs.file-max, value: 26234859 }
+diff --git a/tests/functional/rgw-multisite/container/vagrant_variables.yml b/tests/functional/rgw-multisite/container/vagrant_variables.yml
+new file mode 100644
+index 000000000..db65bd1ee
+--- /dev/null
++++ b/tests/functional/rgw-multisite/container/vagrant_variables.yml
+@@ -0,0 +1,71 @@
++---
++
++# DEPLOY CONTAINERIZED DAEMONS
++docker: true
++
++# DEFINE THE NUMBER OF VMS TO RUN
++mon_vms: 1
++osd_vms: 1
++mds_vms: 0
++rgw_vms: 1
++nfs_vms: 0
++grafana_server_vms: 0
++rbd_mirror_vms: 0
++client_vms: 0
++iscsi_gw_vms: 0
++mgr_vms: 0
++
++# INSTALL SOURCE OF CEPH
++# valid values are 'stable' and 'dev'
++ceph_install_source: stable
++
++# SUBNETS TO USE FOR THE VMS
++public_subnet: 192.168.105
++cluster_subnet: 192.168.106
++
++# MEMORY
++# set 1024 for CentOS
++memory: 1024
++
++# Ethernet interface name
++# use eth1 for libvirt and ubuntu precise, enp0s8 for CentOS and ubuntu xenial
++eth: 'eth1'
++
++# Disks
++# For libvirt use disks: "[ '/dev/vdb', '/dev/vdc' ]"
++# For CentOS7 use disks: "[ '/dev/sda', '/dev/sdb' ]"
++disks: "[ '/dev/sdb', '/dev/sdc' ]"
++
++# VAGRANT BOX
++# Ceph boxes are *strongly* suggested. They are under better control and will
++# not get updated frequently unless required for build systems. These are (for
++# now):
++#
++# * ceph/ubuntu-xenial
++#
++# Ubuntu: ceph/ubuntu-xenial bento/ubuntu-16.04 or ubuntu/trusty64 or ubuntu/wily64
++# CentOS: bento/centos-7.1 or puppetlabs/centos-7.0-64-puppet
++# libvirt CentOS: centos/7
++# parallels Ubuntu: parallels/ubuntu-14.04
++# Debian: deb/jessie-amd64 - be careful the storage controller is named 'SATA Controller'
++# For more boxes have a look at:
++#   - https://atlas.hashicorp.com/boxes/search?utf8=✓&sort=&provider=virtualbox&q=
++#   - https://download.gluster.org/pub/gluster/purpleidea/vagrant/
++vagrant_box: centos/atomic-host
++#ssh_private_key_path: "~/.ssh/id_rsa"
++# The sync directory changes based on vagrant box
++# Set to /home/vagrant/sync for Centos/7, /home/{ user }/vagrant for openstack and defaults to /vagrant
++#vagrant_sync_dir: /home/vagrant/sync
++vagrant_sync_dir: /vagrant
++# Disables synced folder creation. Not needed for testing, will skip mounting
++# the vagrant directory on the remote box regardless of the provider.
++vagrant_disable_synced_folder: true
++# VAGRANT URL
++# This is a URL to download an image from an alternate location.  vagrant_box
++# above should be set to the filename of the image.
++# Fedora virtualbox: https://download.fedoraproject.org/pub/fedora/linux/releases/22/Cloud/x86_64/Images/Fedora-Cloud-Base-Vagrant-22-20150521.x86_64.vagrant-virtualbox.box
++# Fedora libvirt: https://download.fedoraproject.org/pub/fedora/linux/releases/22/Cloud/x86_64/Images/Fedora-Cloud-Base-Vagrant-22-20150521.x86_64.vagrant-libvirt.box
++# vagrant_box_url: https://download.fedoraproject.org/pub/fedora/linux/releases/22/Cloud/x86_64/Images/Fedora-Cloud-Base-Vagrant-22-20150521.x86_64.vagrant-virtualbox.box
++
++os_tuning_params:
++  - { name: fs.file-max, value: 26234859 }
+diff --git a/tests/functional/rgw-multisite/group_vars/all b/tests/functional/rgw-multisite/group_vars/all
+new file mode 100644
+index 000000000..5b14521a9
+--- /dev/null
++++ b/tests/functional/rgw-multisite/group_vars/all
+@@ -0,0 +1,28 @@
++---
++ceph_origin: repository
++ceph_repository: community
++cluster: ceph
++public_network: "192.168.101.0/24"
++cluster_network: "192.168.102.0/24"
++monitor_interface: "{{ 'eth1' if ansible_facts['distribution'] == 'CentOS' else 'ens6' }}"
++radosgw_interface: "{{ 'eth1' if ansible_facts['distribution'] == 'CentOS' else 'ens6' }}"
++journal_size: 100
++osd_objectstore: "bluestore"
++copy_admin_key: true
++# test-volume is created by tests/functional/lvm_setup.yml from /dev/sdb
++lvm_volumes:
++  - data: data-lv1
++    data_vg: test_group
++  - data: data-lv2
++    data_vg: test_group
++    db: journal1
++    db_vg: journals
++os_tuning_params:
++  - { name: fs.file-max, value: 26234859 }
++ceph_conf_overrides:
++  global:
++    mon_allow_pool_size_one: true
++    mon_warn_on_pool_no_redundancy: false
++    osd_pool_default_size: 1
++    mon_max_pg_per_osd: 512
++dashboard_enabled: False
+diff --git a/tests/functional/rgw-multisite/group_vars/rgws b/tests/functional/rgw-multisite/group_vars/rgws
+new file mode 100644
+index 000000000..1a9ee6428
+--- /dev/null
++++ b/tests/functional/rgw-multisite/group_vars/rgws
+@@ -0,0 +1,13 @@
++---
++copy_admin_key: true
++# Enable Multisite support
++rgw_multisite: true
++rgw_multisite_proto: http
++rgw_create_pools:
++  foo:
++    pg_num: 16
++    type: replicated
++  bar:
++    pg_num: 16
++rgw_override_bucket_index_max_shards: 16
++rgw_bucket_default_quota_max_objects: 1638400
+diff --git a/tests/functional/rgw-multisite/host_vars/osd0 b/tests/functional/rgw-multisite/host_vars/osd0
+new file mode 100644
+index 000000000..7ab79b2c2
+--- /dev/null
++++ b/tests/functional/rgw-multisite/host_vars/osd0
+@@ -0,0 +1,32 @@
++---
++rgw_instances:
++  - instance_name: 'rgw0'
++    rgw_zonemaster: True
++    rgw_zonesecondary: False
++    rgw_zonegroupmaster: True
++    rgw_realm: 'canada'
++    rgw_zonegroup: 'zonegroup-canada'
++    rgw_zone: montreal-00
++    radosgw_address: "{{ _radosgw_address }}"
++    radosgw_frontend_port: 8080
++    rgw_zone_user: jacques.chirac
++    rgw_zone_user_display_name: "Jacques Chirac"
++    system_access_key: P9Eb6S8XNyo4dtZZUUMy
++    system_secret_key: qqHCUtfdNnpHq3PZRHW5un9l0bEBM812Uhow0XfB
++  - instance_name: 'rgw1'
++    rgw_zonemaster: false
++    rgw_zonesecondary: true
++    rgw_zonegroupmaster: false
++    rgw_realm: 'france'
++    rgw_zonegroup: 'zonegroup-france'
++    rgw_zone: montreal-01
++    radosgw_address: "{{ _radosgw_address }}"
++    radosgw_frontend_port: 8081
++    rgw_zone_user: edward.lewis
++    rgw_zone_user_display_name: "Edward Lewis"
++    system_access_key: yu17wkvAx3B8Wyn08XoF
++    system_secret_key: 5YZfaSUPqxSNIkZQQA3lBZ495hnIV6k2HAz710BY
++    endpoint: http://192.168.103.12:8081
++# functional testing
++rgw_multisite_endpoint_addr: 192.168.101.12
++radosgw_num_instances: 2
+diff --git a/tests/functional/rgw-multisite/host_vars/rgw0 b/tests/functional/rgw-multisite/host_vars/rgw0
+new file mode 100644
+index 000000000..b0d1b6dc9
+--- /dev/null
++++ b/tests/functional/rgw-multisite/host_vars/rgw0
+@@ -0,0 +1,28 @@
++rgw_zonemaster: true
++rgw_zonesecondary: false
++rgw_zonegroupmaster: true
++rgw_multisite_proto: http
++rgw_instances:
++  - instance_name: 'rgw0'
++    rgw_realm: 'foo'
++    rgw_zonegroup: 'zonegroup123'
++    rgw_zone: 'gotham_city'
++    radosgw_address: "{{ _radosgw_address }}"
++    radosgw_frontend_port: 8080
++    rgw_zone_user: batman
++    rgw_zone_user_display_name: "Batman"
++    system_access_key: 9WA1GN33IUYC717S8KB2
++    system_secret_key: R2vWXyboYw9nluehMgtATBGDBZSuWLnR0M4xNa1W
++  - instance_name: 'rgw1'
++    rgw_realm: 'bar'
++    rgw_zonegroup: 'zonegroup456'
++    rgw_zone: 'metropolis'
++    radosgw_address: "{{ _radosgw_address }}"
++    radosgw_frontend_port: 8081
++    rgw_zone_user: superman
++    rgw_zone_user_display_name: "Superman"
++    system_access_key: S96CJL44E29AN91Y3ZC5
++    system_secret_key: ha7yWiIi7bSV2vAqMBfKjYIVKMfOBaGkWrUZifRt
++# functional testing
++rgw_multisite_endpoint_addr: 192.168.101.11
++radosgw_num_instances: 2
+diff --git a/tests/functional/rgw-multisite/hosts b/tests/functional/rgw-multisite/hosts
+new file mode 100644
+index 000000000..4f571a349
+--- /dev/null
++++ b/tests/functional/rgw-multisite/hosts
+@@ -0,0 +1,9 @@
++[mons]
++mon0
++
++[osds]
++osd0
++
++[rgws]
++osd0
++rgw0
+diff --git a/tests/functional/rgw-multisite/secondary/Vagrantfile b/tests/functional/rgw-multisite/secondary/Vagrantfile
+new file mode 120000
+index 000000000..16076e424
+--- /dev/null
++++ b/tests/functional/rgw-multisite/secondary/Vagrantfile
+@@ -0,0 +1 @@
++../../../../Vagrantfile
+\ No newline at end of file
+diff --git a/tests/functional/rgw-multisite/secondary/group_vars/all b/tests/functional/rgw-multisite/secondary/group_vars/all
+new file mode 100644
+index 000000000..20b4537de
+--- /dev/null
++++ b/tests/functional/rgw-multisite/secondary/group_vars/all
+@@ -0,0 +1,28 @@
++---
++ceph_origin: repository
++ceph_repository: community
++cluster: ceph
++public_network: "192.168.103.0/24"
++cluster_network: "192.168.104.0/24"
++monitor_interface: "{{ 'eth1' if ansible_facts['distribution'] == 'CentOS' else 'ens6' }}"
++radosgw_interface: "{{ 'eth1' if ansible_facts['distribution'] == 'CentOS' else 'ens6' }}"
++journal_size: 100
++osd_objectstore: "bluestore"
++copy_admin_key: true
++# test-volume is created by tests/functional/lvm_setup.yml from /dev/sdb
++lvm_volumes:
++  - data: data-lv1
++    data_vg: test_group
++  - data: data-lv2
++    data_vg: test_group
++    db: journal1
++    db_vg: journals
++os_tuning_params:
++  - { name: fs.file-max, value: 26234859 }
++ceph_conf_overrides:
++  global:
++    mon_allow_pool_size_one: true
++    mon_warn_on_pool_no_redundancy: false
++    osd_pool_default_size: 1
++    mon_max_pg_per_osd: 512
++dashboard_enabled: False
+diff --git a/tests/functional/rgw-multisite/secondary/group_vars/rgws b/tests/functional/rgw-multisite/secondary/group_vars/rgws
+new file mode 100644
+index 000000000..4a30a9f46
+--- /dev/null
++++ b/tests/functional/rgw-multisite/secondary/group_vars/rgws
+@@ -0,0 +1,12 @@
++---
++# Enable Multisite support
++rgw_multisite: true
++rgw_multisite_proto: http
++rgw_create_pools:
++  foo:
++    pg_num: 16
++    type: replicated
++  bar:
++    pg_num: 16
++rgw_override_bucket_index_max_shards: 16
++rgw_bucket_default_quota_max_objects: 1638400
+diff --git a/tests/functional/rgw-multisite/secondary/host_vars/osd0 b/tests/functional/rgw-multisite/secondary/host_vars/osd0
+new file mode 100644
+index 000000000..9a324e6de
+--- /dev/null
++++ b/tests/functional/rgw-multisite/secondary/host_vars/osd0
+@@ -0,0 +1,32 @@
++---
++rgw_instances:
++  - instance_name: 'rgw0'
++    rgw_zonemaster: false
++    rgw_zonesecondary: true
++    rgw_zonegroupmaster: false
++    rgw_realm: 'canada'
++    rgw_zonegroup: 'zonegroup-canada'
++    rgw_zone: paris-00
++    radosgw_address: "{{ _radosgw_address }}"
++    radosgw_frontend_port: 8080
++    rgw_zone_user: jacques.chirac
++    rgw_zone_user_display_name: "Jacques Chirac"
++    system_access_key: P9Eb6S8XNyo4dtZZUUMy
++    system_secret_key: qqHCUtfdNnpHq3PZRHW5un9l0bEBM812Uhow0XfB
++    endpoint: http://192.168.101.12:8080
++  - instance_name: 'rgw1'
++    rgw_zonemaster: True
++    rgw_zonesecondary: False
++    rgw_zonegroupmaster: True
++    rgw_realm: 'france'
++    rgw_zonegroup: 'zonegroup-france'
++    rgw_zone: paris-01
++    radosgw_address: "{{ _radosgw_address }}"
++    radosgw_frontend_port: 8081
++    rgw_zone_user: edward.lewis
++    rgw_zone_user_display_name: "Edward Lewis"
++    system_access_key: yu17wkvAx3B8Wyn08XoF
++    system_secret_key: 5YZfaSUPqxSNIkZQQA3lBZ495hnIV6k2HAz710BY
++# functional testing
++rgw_multisite_endpoint_addr: 192.168.103.12
++radosgw_num_instances: 2
+diff --git a/tests/functional/rgw-multisite/secondary/host_vars/rgw0 b/tests/functional/rgw-multisite/secondary/host_vars/rgw0
+new file mode 100644
+index 000000000..1c09fd0a2
+--- /dev/null
++++ b/tests/functional/rgw-multisite/secondary/host_vars/rgw0
+@@ -0,0 +1,31 @@
++---
++rgw_zonemaster: false
++rgw_zonesecondary: true
++rgw_zonegroupmaster: false
++rgw_multisite_proto: http
++rgw_instances:
++  - instance_name: 'rgw0'
++    rgw_realm: 'foo'
++    rgw_zonegroup: 'zonegroup123'
++    rgw_zone: 'gotham_city-secondary'
++    radosgw_address: "{{ _radosgw_address }}"
++    radosgw_frontend_port: 8080
++    rgw_zone_user: batman
++    rgw_zone_user_display_name: "Batman"
++    system_access_key: 9WA1GN33IUYC717S8KB2
++    system_secret_key: R2vWXyboYw9nluehMgtATBGDBZSuWLnR0M4xNa1W
++    endpoint: http://192.168.101.11:8080
++  - instance_name: 'rgw1'
++    rgw_realm: 'bar'
++    rgw_zonegroup: 'zonegroup456'
++    rgw_zone: 'metropolis-secondary'
++    radosgw_address: "{{ _radosgw_address }}"
++    radosgw_frontend_port: 8081
++    rgw_zone_user: superman
++    rgw_zone_user_display_name: "Superman"
++    system_access_key: S96CJL44E29AN91Y3ZC5
++    system_secret_key: ha7yWiIi7bSV2vAqMBfKjYIVKMfOBaGkWrUZifRt
++    endpoint: http://192.168.101.11:8081
++# functional testing
++rgw_multisite_endpoint_addr: 192.168.103.11
++radosgw_num_instances: 2
+diff --git a/tests/functional/rgw-multisite/secondary/hosts b/tests/functional/rgw-multisite/secondary/hosts
+new file mode 100644
+index 000000000..4f571a349
+--- /dev/null
++++ b/tests/functional/rgw-multisite/secondary/hosts
+@@ -0,0 +1,9 @@
++[mons]
++mon0
++
++[osds]
++osd0
++
++[rgws]
++osd0
++rgw0
+diff --git a/tests/functional/rgw-multisite/secondary/vagrant_variables.yml b/tests/functional/rgw-multisite/secondary/vagrant_variables.yml
+new file mode 100644
+index 000000000..be1928315
+--- /dev/null
++++ b/tests/functional/rgw-multisite/secondary/vagrant_variables.yml
+@@ -0,0 +1,71 @@
++---
++
++# DEPLOY CONTAINERIZED DAEMONS
++docker: false
++
++# DEFINE THE NUMBER OF VMS TO RUN
++mon_vms: 1
++osd_vms: 1
++mds_vms: 0
++rgw_vms: 1
++nfs_vms: 0
++grafana_server_vms: 0
++rbd_mirror_vms: 0
++client_vms: 0
++iscsi_gw_vms: 0
++mgr_vms: 0
++
++# INSTALL SOURCE OF CEPH
++# valid values are 'stable' and 'dev'
++ceph_install_source: stable
++
++# SUBNETS TO USE FOR THE VMS
++public_subnet: 192.168.103
++cluster_subnet: 192.168.104
++
++# MEMORY
++# set 1024 for CentOS
++memory: 1024
++
++# Ethernet interface name
++# use eth1 for libvirt and ubuntu precise, enp0s8 for CentOS and ubuntu xenial
++eth: 'eth1'
++
++# Disks
++# For libvirt use disks: "[ '/dev/vdb', '/dev/vdc' ]"
++# For CentOS7 use disks: "[ '/dev/sda', '/dev/sdb' ]"
++disks: "[ '/dev/sdb', '/dev/sdc' ]"
++
++# VAGRANT BOX
++# Ceph boxes are *strongly* suggested. They are under better control and will
++# not get updated frequently unless required for build systems. These are (for
++# now):
++#
++# * ceph/ubuntu-xenial
++#
++# Ubuntu: ceph/ubuntu-xenial bento/ubuntu-16.04 or ubuntu/trusty64 or ubuntu/wily64
++# CentOS: bento/centos-7.1 or puppetlabs/centos-7.0-64-puppet
++# libvirt CentOS: centos/7
++# parallels Ubuntu: parallels/ubuntu-14.04
++# Debian: deb/jessie-amd64 - be careful the storage controller is named 'SATA Controller'
++# For more boxes have a look at:
++#   - https://atlas.hashicorp.com/boxes/search?utf8=✓&sort=&provider=virtualbox&q=
++#   - https://download.gluster.org/pub/gluster/purpleidea/vagrant/
++vagrant_box: centos/stream8
++#ssh_private_key_path: "~/.ssh/id_rsa"
++# The sync directory changes based on vagrant box
++# Set to /home/vagrant/sync for Centos/7, /home/{ user }/vagrant for openstack and defaults to /vagrant
++#vagrant_sync_dir: /home/vagrant/sync
++vagrant_sync_dir: /vagrant
++# Disables synced folder creation. Not needed for testing, will skip mounting
++# the vagrant directory on the remote box regardless of the provider.
++vagrant_disable_synced_folder: true
++# VAGRANT URL
++# This is a URL to download an image from an alternate location.  vagrant_box
++# above should be set to the filename of the image.
++# Fedora virtualbox: https://download.fedoraproject.org/pub/fedora/linux/releases/22/Cloud/x86_64/Images/Fedora-Cloud-Base-Vagrant-22-20150521.x86_64.vagrant-virtualbox.box
++# Fedora libvirt: https://download.fedoraproject.org/pub/fedora/linux/releases/22/Cloud/x86_64/Images/Fedora-Cloud-Base-Vagrant-22-20150521.x86_64.vagrant-libvirt.box
++# vagrant_box_url: https://download.fedoraproject.org/pub/fedora/linux/releases/22/Cloud/x86_64/Images/Fedora-Cloud-Base-Vagrant-22-20150521.x86_64.vagrant-virtualbox.box
++
++os_tuning_params:
++  - { name: fs.file-max, value: 26234859 }
+diff --git a/tests/functional/rgw-multisite/vagrant_variables.yml b/tests/functional/rgw-multisite/vagrant_variables.yml
+new file mode 100644
+index 000000000..09ade271d
+--- /dev/null
++++ b/tests/functional/rgw-multisite/vagrant_variables.yml
+@@ -0,0 +1,71 @@
++---
++
++# DEPLOY CONTAINERIZED DAEMONS
++docker: false
++
++# DEFINE THE NUMBER OF VMS TO RUN
++mon_vms: 1
++osd_vms: 1
++mds_vms: 0
++rgw_vms: 1
++nfs_vms: 0
++grafana_server_vms: 0
++rbd_mirror_vms: 0
++client_vms: 0
++iscsi_gw_vms: 0
++mgr_vms: 0
++
++# INSTALL SOURCE OF CEPH
++# valid values are 'stable' and 'dev'
++ceph_install_source: stable
++
++# SUBNETS TO USE FOR THE VMS
++public_subnet: 192.168.101
++cluster_subnet: 192.168.102
++
++# MEMORY
++# set 1024 for CentOS
++memory: 1024
++
++# Ethernet interface name
++# use eth1 for libvirt and ubuntu precise, enp0s8 for CentOS and ubuntu xenial
++eth: 'eth1'
++
++# Disks
++# For libvirt use disks: "[ '/dev/vdb', '/dev/vdc' ]"
++# For CentOS7 use disks: "[ '/dev/sda', '/dev/sdb' ]"
++disks: "[ '/dev/sdb', '/dev/sdc' ]"
++
++# VAGRANT BOX
++# Ceph boxes are *strongly* suggested. They are under better control and will
++# not get updated frequently unless required for build systems. These are (for
++# now):
++#
++# * ceph/ubuntu-xenial
++#
++# Ubuntu: ceph/ubuntu-xenial bento/ubuntu-16.04 or ubuntu/trusty64 or ubuntu/wily64
++# CentOS: bento/centos-7.1 or puppetlabs/centos-7.0-64-puppet
++# libvirt CentOS: centos/7
++# parallels Ubuntu: parallels/ubuntu-14.04
++# Debian: deb/jessie-amd64 - be careful the storage controller is named 'SATA Controller'
++# For more boxes have a look at:
++#   - https://atlas.hashicorp.com/boxes/search?utf8=✓&sort=&provider=virtualbox&q=
++#   - https://download.gluster.org/pub/gluster/purpleidea/vagrant/
++vagrant_box: centos/stream8
++#ssh_private_key_path: "~/.ssh/id_rsa"
++# The sync directory changes based on vagrant box
++# Set to /home/vagrant/sync for Centos/7, /home/{ user }/vagrant for openstack and defaults to /vagrant
++#vagrant_sync_dir: /home/vagrant/sync
++vagrant_sync_dir: /vagrant
++# Disables synced folder creation. Not needed for testing, will skip mounting
++# the vagrant directory on the remote box regardless of the provider.
++vagrant_disable_synced_folder: true
++# VAGRANT URL
++# This is a URL to download an image from an alternate location.  vagrant_box
++# above should be set to the filename of the image.
++# Fedora virtualbox: https://download.fedoraproject.org/pub/fedora/linux/releases/22/Cloud/x86_64/Images/Fedora-Cloud-Base-Vagrant-22-20150521.x86_64.vagrant-virtualbox.box
++# Fedora libvirt: https://download.fedoraproject.org/pub/fedora/linux/releases/22/Cloud/x86_64/Images/Fedora-Cloud-Base-Vagrant-22-20150521.x86_64.vagrant-libvirt.box
++# vagrant_box_url: https://download.fedoraproject.org/pub/fedora/linux/releases/22/Cloud/x86_64/Images/Fedora-Cloud-Base-Vagrant-22-20150521.x86_64.vagrant-virtualbox.box
++
++os_tuning_params:
++  - { name: fs.file-max, value: 26234859 }
+diff --git a/tests/functional/rgw_multisite.yml b/tests/functional/rgw_multisite.yml
+new file mode 100644
+index 000000000..a995fd0d4
+--- /dev/null
++++ b/tests/functional/rgw_multisite.yml
+@@ -0,0 +1,72 @@
++---
++- hosts: rgws
++  gather_facts: True
++  become: True
++  tasks:
++    - name: import_role ceph-defaults
++      import_role:
++        name: ceph-defaults
++
++    - name: import_role ceph-facts
++      include_role:
++        name: ceph-facts
++        tasks_from: "{{ item }}.yml"
++      with_items:
++        - set_radosgw_address
++        - container_binary
++
++    - name: install s3cmd
++      package:
++        name: s3cmd
++        state: present
++      register: result
++      until: result is succeeded
++      when: not containerized_deployment | bool
++
++    - name: generate and upload a random 10Mb file - containerized deployment
++      shell: >
++        {{ container_binary }} run --rm --name=rgw_multisite_test --entrypoint=bash {{ ceph_docker_registry }}/{{ ceph_docker_image }}:{{ ceph_docker_image_tag }} -c 'dd if=/dev/urandom of=/tmp/testinfra-{{ item.rgw_realm }}.img bs=1M count=10;
++        s3cmd --no-ssl --access_key={{ item.system_access_key }} --secret_key={{ item.system_secret_key }} --host={{ item.radosgw_address }}:{{ item.radosgw_frontend_port }} --host-bucket={{ item.radosgw_address }}:{{ item.radosgw_frontend_port }} mb s3://testinfra-{{ item.rgw_realm }};
++        s3cmd --no-ssl --access_key={{ item.system_access_key }} --secret_key={{ item.system_secret_key }} --host={{ item.radosgw_address }}:{{ item.radosgw_frontend_port }} --host-bucket={{ item.radosgw_address }}:{{ item.radosgw_frontend_port }} put /tmp/testinfra-{{ item.rgw_realm }}.img s3://testinfra-{{ item.rgw_realm }}'
++      with_items: "{{ rgw_instances_host }}"
++      tags: upload
++      when:
++        - item.rgw_zonemaster | default(rgw_zonemaster) | bool
++        - containerized_deployment | bool
++
++    - name: generate and upload a random a 10Mb file - non containerized
++      shell: |
++        dd if=/dev/urandom of=/tmp/testinfra-{{ item.rgw_realm }}.img bs=1M count=10;
++        s3cmd --no-ssl --access_key={{ item.system_access_key }} --secret_key={{ item.system_secret_key }} --host={{ item.radosgw_address }}:{{ item.radosgw_frontend_port }} --host-bucket={{ item.radosgw_address }}:{{ item.radosgw_frontend_port }} mb s3://testinfra-{{ item.rgw_realm }};
++        s3cmd --no-ssl --access_key={{ item.system_access_key }} --secret_key={{ item.system_secret_key }} --host={{ item.radosgw_address }}:{{ item.radosgw_frontend_port }} --host-bucket={{ item.radosgw_address }}:{{ item.radosgw_frontend_port }} put /tmp/testinfra-{{ item.rgw_realm }}.img s3://testinfra-{{ item.rgw_realm }};
++      with_items: "{{ rgw_instances_host }}"
++      tags: upload
++      when:
++        - item.rgw_zonemaster | default(rgw_zonemaster) | bool
++        - not containerized_deployment | bool
++
++    - name: get info from replicated file - containerized deployment
++      command: >
++        {{ container_binary }} run --rm --name=rgw_multisite_test --entrypoint=s3cmd {{ ceph_docker_registry }}/{{ ceph_docker_image }}:{{ ceph_docker_image_tag }} --no-ssl --access_key={{ item.system_access_key }} --secret_key={{ item.system_secret_key }} --host={{ item.radosgw_address }}:{{ item.radosgw_frontend_port }} --host-bucket={{ item.radosgw_address }}:{{ item.radosgw_frontend_port }} info s3://testinfra-{{ item.rgw_realm }}/testinfra-{{ item.rgw_realm }}.img
++      with_items: "{{ rgw_instances_host }}"
++      register: result
++      retries: 60
++      delay: 1
++      until: result is succeeded
++      tags: download
++      when:
++        - not item.rgw_zonemaster | default(rgw_zonemaster) | bool
++        - containerized_deployment | bool
++
++    - name: get info from replicated file - non containerized
++      command: >
++        s3cmd --no-ssl --access_key={{ item.system_access_key }} --secret_key={{ item.system_secret_key }} --host={{ item.radosgw_address }}:{{ item.radosgw_frontend_port }} --host-bucket={{ item.radosgw_address }}:{{ item.radosgw_frontend_port }} info s3://testinfra-{{ item.rgw_realm }}/testinfra-{{ item.rgw_realm }}.img
++      with_items: "{{ rgw_instances_host }}"
++      register: result
++      retries: 60
++      delay: 1
++      until: result is succeeded
++      tags: download
++      when:
++        - not item.rgw_zonemaster | default(rgw_zonemaster) | bool
++        - not containerized_deployment | bool
+diff --git a/tox.ini b/tox.ini
+--- a/tox.ini
++++ b/tox.ini
+@@ -1,5 +1,5 @@
+ [tox]
+-envlist = {centos,ubuntu,rocky}-{container,non_container}-{all_daemons,all_daemons_ipv6,collocation,lvm_osds,shrink_mon,shrink_mgr,shrink_mds,shrink_rbdmirror,shrink_rgw,lvm_batch,add_mons,add_mgrs,add_mdss,add_rbdmirrors,add_rgws,purge,storage_inventory,lvm_auto_discovery,all_in_one,cephadm_adopt,purge_dashboard}
++envlist = {centos,ubuntu,rocky}-{container,non_container}-{all_daemons,all_daemons_ipv6,collocation,lvm_osds,shrink_mon,shrink_mgr,shrink_mds,shrink_rbdmirror,shrink_rgw,lvm_batch,add_mons,add_mgrs,add_mdss,add_rbdmirrors,add_rgws,rgw_multisite,purge,storage_inventory,lvm_auto_discovery,all_in_one,cephadm_adopt,purge_dashboard}
+   centos-non_container-{switch_to_containers}
+   infra_lv_create
+   migrate_ceph_disk_to_ceph_volume
+@@ -244,6 +244,41 @@
+       ceph_docker_registry_password={env:DOCKER_HUB_PASSWORD} \
+       "
+   py.test --reruns 5 --reruns-delay 1 -n 8 --sudo -v --connection=ansible --ansible-inventory={changedir}/hosts-2 --ssh-config={changedir}/vagrant_ssh_config {toxinidir}/tests/functional/tests
++
++[rgw-multisite]
++commands=
++  bash -c "cd {changedir}/secondary && bash {toxinidir}/tests/scripts/vagrant_up.sh --no-provision {posargs:--provider=virtualbox}"
++  bash -c "cd {changedir}/secondary && bash {toxinidir}/tests/scripts/generate_ssh_config.sh {changedir}/secondary"
++  ansible-playbook --ssh-common-args='-F {changedir}/secondary/vagrant_ssh_config -o ControlMaster=auto -o ControlPersist=600s -o PreferredAuthentications=publickey' -vv -i {changedir}/secondary/hosts {toxinidir}/tests/functional/setup.yml
++  ansible-playbook -vv -i "localhost," -c local {toxinidir}/tests/functional/dev_setup.yml --extra-vars "dev_setup={env:DEV_SETUP:False} change_dir={changedir}/secondary ceph_dev_branch={env:CEPH_DEV_BRANCH:main} ceph_dev_sha1={env:CEPH_DEV_SHA1:latest}" --tags "vagrant_setup"
++  ansible-playbook --ssh-common-args='-F {changedir}/secondary/vagrant_ssh_config -o ControlMaster=auto -o ControlPersist=600s -o PreferredAuthentications=publickey' -vv -i {changedir}/secondary/hosts {toxinidir}/tests/functional/lvm_setup.yml
++  # ensure the rule isn't already present
++  ansible -i localhost, all -c local -b -m iptables -a 'chain=FORWARD protocol=tcp source=192.168.0.0/16 destination=192.168.0.0/16 jump=ACCEPT action=insert rule_num=1 state=absent'
++  ansible -i localhost, all -c local -b -m iptables -a 'chain=FORWARD protocol=tcp source=192.168.0.0/16 destination=192.168.0.0/16 jump=ACCEPT action=insert rule_num=1 state=present'
++  ansible-playbook --ssh-common-args='-F {changedir}/secondary/vagrant_ssh_config -o ControlMaster=auto -o ControlPersist=600s -o PreferredAuthentications=publickey' -vv -i {changedir}/secondary/hosts {toxinidir}/{env:PLAYBOOK:site.yml.sample} --extra-vars "\
++      yes_i_know=true \
++      ireallymeanit=yes \
++      ceph_dev_branch={env:CEPH_DEV_BRANCH:main} \
++      ceph_dev_sha1={env:CEPH_DEV_SHA1:latest} \
++      ceph_docker_registry_auth=True \
++      ceph_docker_registry_username={env:DOCKER_HUB_USERNAME} \
++      ceph_docker_registry_password={env:DOCKER_HUB_PASSWORD} \
++      "
++  ansible-playbook -vv -i {changedir}/{env:INVENTORY} {toxinidir}/{env:PLAYBOOK:site.yml.sample} --limit rgws --extra-vars "\
++      yes_i_know=true \
++      ceph_dev_branch={env:CEPH_DEV_BRANCH:main} \
++      ceph_dev_sha1={env:CEPH_DEV_SHA1:latest} \
++      ceph_docker_registry_auth=True \
++      ceph_docker_registry_username={env:DOCKER_HUB_USERNAME} \
++      ceph_docker_registry_password={env:DOCKER_HUB_PASSWORD} \
++  "
++  ansible-playbook -vv -i {changedir}/hosts {toxinidir}/tests/functional/rgw_multisite.yml --skip-tags download
++  ansible-playbook --ssh-common-args='-F {changedir}/secondary/vagrant_ssh_config -o ControlMaster=auto -o ControlPersist=600s -o PreferredAuthentications=publickey' -vv -i {changedir}/secondary/hosts {toxinidir}/tests/functional/rgw_multisite.yml --skip-tags download
++  ansible-playbook -vv -i {changedir}/hosts {toxinidir}/tests/functional/rgw_multisite.yml --skip-tags upload
++  ansible-playbook --ssh-common-args='-F {changedir}/secondary/vagrant_ssh_config -o ControlMaster=auto -o ControlPersist=600s -o PreferredAuthentications=publickey' -vv -i {changedir}/secondary/hosts {toxinidir}/tests/functional/rgw_multisite.yml --skip-tags upload
++  bash -c "cd {changedir}/secondary && vagrant destroy --force"
++  # clean rule after the scenario is complete
++  ansible -i localhost, all -c local -b -m iptables -a 'chain=FORWARD protocol=tcp source=192.168.0.0/16 destination=192.168.0.0/16 jump=ACCEPT action=insert rule_num=1 state=absent'
+
+ [storage-inventory]
+ commands=
+@@ -322,6 +357,7 @@
+   add_mdss: {toxinidir}/tests/functional/add-mdss{env:CONTAINER_DIR:}
+   add_rbdmirrors: {toxinidir}/tests/functional/add-rbdmirrors{env:CONTAINER_DIR:}
+   add_rgws: {toxinidir}/tests/functional/add-rgws{env:CONTAINER_DIR:}
++  rgw_multisite: {toxinidir}/tests/functional/rgw-multisite{env:CONTAINER_DIR:}
+   storage_inventory: {toxinidir}/tests/functional/lvm-osds{env:CONTAINER_DIR:}
+   lvm_auto_discovery: {toxinidir}/tests/functional/lvm-auto-discovery{env:CONTAINER_DIR:}
+   all_in_one: {toxinidir}/tests/functional/all-in-one{env:CONTAINER_DIR:}
+@@ -344,6 +380,7 @@
+   ansible-playbook -vv --diff -i {changedir}/{env:INVENTORY} {toxinidir}/{env:PLAYBOOK:site.yml.sample} --extra-vars "\
+       no_log_on_ceph_key_tasks=false \
+       yes_i_know=true \
++      deploy_secondary_zones=False \
+       ceph_dev_branch={env:CEPH_DEV_BRANCH:main} \
+       ceph_dev_sha1={env:CEPH_DEV_SHA1:latest} \
+       ceph_docker_registry_auth=True \
+@@ -376,6 +413,7 @@
+   add_mdss: {[add-mdss]commands}
+   add_rbdmirrors: {[add-rbdmirrors]commands}
+   add_rgws: {[add-rgws]commands}
++  rgw_multisite: {[rgw-multisite]commands}
+   storage_inventory: {[storage-inventory]commands}
+   cephadm_adopt: {[cephadm-adopt]commands}
+ 
