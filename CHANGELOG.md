@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 This file was started on May 30, 2025. Changes prior to this date are not included in the CHANGELOG.
 
+## [v0.20261008.0] - 2026-10-08
+
+### Added
+- Add a cephadm guard that refuses to run ceph-ansible against a Ceph cluster already managed by cephadm (osism/container-image-ceph-ansible#713)
+- Refuse to run when the configured Ceph release does not match the series this image deploys (osism/container-image-ceph-ansible#717)
+
+### Changed
+- Leave release-build Ceph image and client version pins to osism-ansible instead of duplicating them in this image (osism/container-image-ceph-ansible#716)
+
+### Fixed
+- Rename ceph-ansible's internal ceph_version variables so OSISM's own ceph_version configuration value is no longer overwritten, which had broken containerized plays (osism/container-image-ceph-ansible#718)
+- Take the Ceph release series from the release snapshot instead of the osism/release main branch, fixing release builds that previously failed or picked the wrong series (osism/container-image-ceph-ansible@f01a2ab)
+
 ## [v0.20261001.0] - 2026-10-01
 
 ### Fixed
