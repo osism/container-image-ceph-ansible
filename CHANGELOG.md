@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 This file was started on May 30, 2025. Changes prior to this date are not included in the CHANGELOG.
 
+## [v0.20261011.0] - 2026-10-11
+
+### Fixed
+- Install python3-packaging for the pip module to fix dtrack-auditor failures on the debian-trixie nodeset (osism/container-image-ceph-ansible#722)
+- Correct outdated comment on where release builds source Ceph version pins (osism/container-image-ceph-ansible#720)
+
 ## [v0.20261008.0] - 2026-10-08
 
 ### Added
