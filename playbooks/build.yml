@@ -33,19 +33,67 @@
           set -o pipefail
           set -x
 
-          created=$(date --rfc-3339=ns)
+          created=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
           revision=$(git rev-parse --short HEAD)
+          revision_full=$(git rev-parse HEAD)
 
-          # NOTE: A release build takes its Ceph series from the release snapshot
-          #       it is built for, the ceph-ansible-$version tag that the
-          #       Containerfile checks out too. latest/ceph_ansible.yml names the
+          # NOTE: The sources that are fetched while the image is built are
+          #       resolved to commits here, so that the image records what it
+          #       contains. The commits are passed into the build as well,
+          #       which pins them: without that the label and the clone in the
+          #       Containerfile are two independent resolutions of a floating
+          #       ref and can differ.
+          resolve_commit () {
+              local url=$1
+              local ref=$2
+              local refs sha
+
+              # NOTE: An annotated tag resolves to the tag object and not to
+              #       a commit, so the commit is requested explicitly as
+              #       $ref^{}. That pattern matches nothing for a branch or a
+              #       lightweight tag, where $ref is the commit itself.
+              refs=$(git ls-remote "$url" "$ref" "$ref^{}")
+
+              sha=$(echo "$refs" | awk '$2 ~ /\^\{\}$/ { print $1; exit }')
+              if [[ -z $sha ]]; then
+                  sha=$(echo "$refs" | awk 'NR == 1 { print $1 }')
+              fi
+
+              if [[ -z $sha ]]; then
+                  echo "unable to resolve $ref in $url" >&2
+                  exit 1
+              fi
+
+              echo "$sha"
+          }
+
+          release_version () {
+              echo "$series_yml" | grep "^$1:" | awk -F': ' '{ print $2 }' | tr -d "\"' "
+          }
+
+          # NOTE: A release build takes its Ceph series from the release
+          #       commit it is built for. latest/ceph_ansible.yml names the
           #       series; snapshots from before it existed name it with
-          #       latest/ceph.yml.
+          #       latest/ceph.yml. The release tag is resolved first and every
+          #       file is read through that commit, so a tag moved during the
+          #       build cannot mix two states.
           if [[ $version != "latest" ]]; then
-              release=https://raw.githubusercontent.com/osism/release/ceph-ansible-$version/latest
-              filename=$(curl -fsSL $release/ceph_ansible.yml 2>/dev/null || curl -fsSL $release/ceph.yml)
-              ceph_version=$(curl -fsSL $release/$filename | grep "ceph_version:" | awk -F': ' '{ print $2 }')
+              sha_release=$(resolve_commit https://github.com/osism/release "refs/tags/ceph-ansible-$version")
+              release_url=https://raw.githubusercontent.com/osism/release/$sha_release/latest
+              filename=$(curl -fsSL "$release_url/ceph_ansible.yml" 2>/dev/null || curl -fsSL "$release_url/ceph.yml")
+              series_yml=$(curl -fsSL "$release_url/$filename")
+              ceph_version=$(echo "$series_yml" | grep "ceph_version:" | awk -F': ' '{ print $2 }')
+              sha_ansible_playbooks=$(resolve_commit https://github.com/osism/ansible-playbooks "refs/tags/$(release_version playbooks_version)")
+              sha_generics=$(resolve_commit https://github.com/osism/generics "refs/tags/$(release_version generics_version)")
+          else
+              sha_release=$(resolve_commit https://github.com/osism/release HEAD)
+              series_yml=$(curl -fsSL "https://raw.githubusercontent.com/osism/release/$sha_release/latest/ceph-$ceph_version.yml")
+              sha_ansible_playbooks=$(resolve_commit https://github.com/osism/ansible-playbooks HEAD)
+              sha_generics=$(resolve_commit https://github.com/osism/generics HEAD)
           fi
+
+          ceph_ansible_version=$(echo "$series_yml" | grep "ceph_ansible_version:" | awk -F': ' '{ print $2 }')
+          sha_ceph_ansible=$(resolve_commit https://github.com/ceph/ceph-ansible "refs/heads/$ceph_ansible_version")
 
           . defaults/${ceph_version}.sh
 
@@ -53,18 +101,39 @@
               repository="$registry/$repository"
           fi
 
+          # NOTE: The base image is pinned by digest the same way.
+          base_image=$(awk -F= '$1 == "ARG BASE_IMAGE" { print $2; exit }' Containerfile)
+          base_tag=$(awk -F= '$1 == "ARG BASE_TAG" { print $2; exit }' Containerfile)
+          if [[ -z $base_image || -z $base_tag ]]; then
+              echo "no ARG BASE_IMAGE or BASE_TAG in the Containerfile" >&2
+              exit 1
+          fi
+          base_name=$base_image:$base_tag
+          base_digest=sha256:$(docker buildx imagetools inspect --raw "$base_name" | sha256sum | cut -d' ' -f1)
+
           docker buildx build \
+              --build-arg "BASE_TAG=$base_tag@$base_digest" \
               --build-arg "CEPH_VERSION=$ceph_version" \
+              --build-arg "SHA_ANSIBLE_PLAYBOOKS=$sha_ansible_playbooks" \
+              --build-arg "SHA_CEPH_ANSIBLE=$sha_ceph_ansible" \
+              --build-arg "SHA_GENERICS=$sha_generics" \
+              --build-arg "SHA_RELEASE=$sha_release" \
               --build-arg "VERSION=$version" \
+              --label "org.opencontainers.image.base.digest=$base_digest" \
+              --label "org.opencontainers.image.base.name=$base_name" \
               --label "org.opencontainers.image.created=$created" \
               --label "org.opencontainers.image.documentation=https://osism.tech/docs/" \
               --label "org.opencontainers.image.licenses=ASL 2.0" \
-              --label "org.opencontainers.image.revision=$revision" \
+              --label "org.opencontainers.image.revision=$revision_full" \
               --label "org.opencontainers.image.source=https://github.com/osism/container-image-ceph-ansible" \
               --label "org.opencontainers.image.title=ceph-ansible" \
               --label "org.opencontainers.image.url=https://quay.io/organization/osism" \
               --label "org.opencontainers.image.vendor=OSISM GmbH" \
               --label "org.opencontainers.image.version=$version" \
+              --label "de.osism.commit.ansible_playbooks=$sha_ansible_playbooks" \
+              --label "de.osism.commit.ceph_ansible=$sha_ceph_ansible" \
+              --label "de.osism.commit.generics=$sha_generics" \
+              --label "de.osism.commit.release=$sha_release" \
               --label "de.osism.release.ceph=$ceph_version" \
               --load \
               --tag "$revision" \

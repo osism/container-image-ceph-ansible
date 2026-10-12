@@ -1,9 +1,13 @@
-ARG IMAGE=registry.osism.tech/dockerhub/python
-
-FROM ${IMAGE}:3.13-slim-bookworm AS builder
+ARG BASE_IMAGE=registry.osism.tech/dockerhub/python
+ARG BASE_TAG=3.13-slim-bookworm
+FROM ${BASE_IMAGE}:${BASE_TAG} AS builder
 
 ARG VERSION
 ARG CEPH_VERSION=quincy
+ARG SHA_ANSIBLE_PLAYBOOKS
+ARG SHA_CEPH_ANSIBLE
+ARG SHA_GENERICS
+ARG SHA_RELEASE
 
 ARG USER_ID=45000
 ARG GROUP_ID=45000
@@ -89,6 +93,11 @@ if [ "$VERSION" != "latest" ]; then
   ( cd /generics || exit; git fetch --all --force; git checkout "$(yq -M -r .generics_version "$ceph_release_file")" )
 fi
 
+# pin the sources to the commits recorded in the labels
+if [ -n "$SHA_RELEASE" ]; then ( cd /release || exit; git checkout "$SHA_RELEASE" ); fi
+if [ -n "$SHA_ANSIBLE_PLAYBOOKS" ]; then ( cd /playbooks || exit; git checkout "$SHA_ANSIBLE_PLAYBOOKS" ); fi
+if [ -n "$SHA_GENERICS" ]; then ( cd /generics || exit; git checkout "$SHA_GENERICS" ); fi
+
 # add inventory files
 mkdir -p /ansible/inventory.generics /ansible/inventory
 cp /generics/inventory/50-ceph /ansible/inventory.generics/50-ceph
@@ -143,6 +152,7 @@ rm /mitogen.tar.gz
 # prepare project repository
 PROJECT_VERSION=$(grep "ceph_ansible_version:" /release/latest/ceph-$CEPH_VERSION.yml | awk -F': ' '{ print $2 }')
 git clone -b $PROJECT_VERSION https://github.com/ceph/ceph-ansible /repository
+if [ -n "$SHA_CEPH_ANSIBLE" ]; then ( cd /repository || exit; git checkout "$SHA_CEPH_ANSIBLE" ); fi
 for patchfile in $(find /patches/$PROJECT_VERSION -name "*.patch" | LC_ALL=C sort); do
   echo $patchfile;
   ( cd /repository && patch --forward --batch -p1 --dry-run ) < $patchfile || exit 1;
@@ -213,9 +223,7 @@ EOF
 
 USER dragon
 
-ARG IMAGE=registry.osism.tech/dockerhub/python
-
-FROM ${IMAGE}:3.13-slim-bookworm
+FROM ${BASE_IMAGE}:${BASE_TAG}
 
 COPY --link --from=builder / /
 
