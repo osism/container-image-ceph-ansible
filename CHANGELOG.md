@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 This file was started on May 30, 2025. Changes prior to this date are not included in the CHANGELOG.
 
+## [v0.20261019.0] - 2026-10-19
+
+### Changed
+- Pin image build sources (release, ansible-playbooks, generics, ceph-ansible) to resolved commits, label the image with those commits, and pin the base image by digest (osism/container-image-ceph-ansible#724)
+
+### Dependencies
+- yq 4.4.0 → 4.4.5 (osism/container-image-ceph-ansible#725)
+
 ## [v0.20261011.0] - 2026-10-11
 
 ### Fixed
