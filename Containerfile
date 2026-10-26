@@ -70,7 +70,6 @@ apt-get install -y --no-install-recommends \
   python3-wheel \
   rsync \
   sshpass
-uv pip install --no-cache --system -r /src/requirements.txt
 
 # add user
 groupadd -g "$GROUP_ID" dragon
@@ -79,13 +78,27 @@ useradd -l -g dragon -G docker -u "$USER_ID" -m -d /ansible dragon
 
 # prepare release repository
 git clone https://github.com/osism/release /release
+if [ "$VERSION" != "latest" ]; then
+  ( cd /release || exit; git fetch --all --force; git checkout "ceph-ansible-$VERSION" )
+fi
+
+# pin the source to the commit recorded in the labels
+if [ -n "$SHA_RELEASE" ]; then ( cd /release || exit; git checkout "$SHA_RELEASE" ); fi
+
+# install required python packages
+# NOTE: All packages are installed by a single resolver run, so a
+#       requirement that conflicts with another fails the build instead
+#       of being replaced by a later install. Rendering /requirements.txt
+#       needs Jinja2 and PyYAML before they are installed, so the render
+#       script runs in a temporary environment.
+uv run --no-cache --no-project --with jinja2 --with pyyaml python3 /src/render-python-requirements.py
+uv pip install --no-cache --system -r /src/requirements.txt -r /requirements.txt
 
 # run preparations
 git clone https://github.com/osism/ansible-playbooks /playbooks
 git clone https://github.com/osism/generics /generics
 
 if [ "$VERSION" != "latest" ]; then
-  ( cd /release || exit; git fetch --all --force; git checkout "ceph-ansible-$VERSION" )
   # The refs come from the same file that names the series, see build.yml.
   ceph_release_file=/release/latest/ceph_ansible.yml
   [ -e "$ceph_release_file" ] || ceph_release_file=/release/latest/ceph.yml
@@ -94,7 +107,6 @@ if [ "$VERSION" != "latest" ]; then
 fi
 
 # pin the sources to the commits recorded in the labels
-if [ -n "$SHA_RELEASE" ]; then ( cd /release || exit; git checkout "$SHA_RELEASE" ); fi
 if [ -n "$SHA_ANSIBLE_PLAYBOOKS" ]; then ( cd /playbooks || exit; git checkout "$SHA_ANSIBLE_PLAYBOOKS" ); fi
 if [ -n "$SHA_GENERICS" ]; then ( cd /generics || exit; git checkout "$SHA_GENERICS" ); fi
 
@@ -104,14 +116,10 @@ cp /generics/inventory/50-ceph /ansible/inventory.generics/50-ceph
 cp /generics/inventory/51-ceph /ansible/inventory.generics/51-ceph
 
 mkdir -p /ansible/galaxy /ansible/group_vars/all
-python3 /src/render-python-requirements.py
 python3 /src/render-versions.py
 # The Ceph series this image deploys, for the guard in cephadm-guard.yml. A
 # file, not a variable: the configuration is loaded as extra vars.
 echo "$CEPH_VERSION" > /ansible/ceph-series
-
-# install required python packages
-uv pip install --no-cache --system -r /requirements.txt
 
 # set ansible version in the motd
 ansible_version=$(python3 -c 'import ansible; print(ansible.release.__version__)')
