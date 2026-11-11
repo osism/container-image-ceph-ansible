@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 This file was started on May 30, 2025. Changes prior to this date are not included in the CHANGELOG.
 
+## [v0.20261111.0] - 2026-11-11
+
+### Changed
+
+- Install the Python packages in a single uv run (osism/container-image-ceph-ansible#727)
+
 ## [v0.20261019.0] - 2026-10-19
 
 ### Changed
