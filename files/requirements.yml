@@ -15,7 +15,11 @@ collections:
     type: git
   - name: ansible.utils
     version: '>=2.5.0'
+  # NOTE: pin community.general because ceph-ansible runs on ansible-core
+  # 2.16. 14.0.0 needs ansible-core 2.19 and fails to load several of its
+  # plugins on 2.16; 13.5.0 still loads.
   - name: community.general
+    version: "13.5.0"
   - name: ansible.posix
   - name: osism.commons
     source: https://galaxy.ansible.com
