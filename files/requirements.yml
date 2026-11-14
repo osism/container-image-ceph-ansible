@@ -19,7 +19,7 @@ collections:
   # 2.16. 14.0.0 needs ansible-core 2.19 and fails to load several of its
   # plugins on 2.16; 13.5.0 still loads.
   - name: community.general
-    version: "13.5.0"
+    version: "13.5.1"
   - name: ansible.posix
   - name: osism.commons
     source: https://galaxy.ansible.com
